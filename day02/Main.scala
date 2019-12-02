@@ -26,9 +26,9 @@ object Main extends App {
       val b = program(i + 2)
       val dest = program(i + 3)
       if (program(i) == 1) {
-        program(dest) = a + b
+        program(dest) = program(a) + program(b)
       } else if (program(i) == 2) {
-        program(dest) = a * b
+        program(dest) = program(a) * program(b)
       } else {
         println("error!")
       }
