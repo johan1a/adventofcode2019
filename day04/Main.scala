@@ -7,6 +7,7 @@ object Main extends App {
   def max1 = 706948
 
   println(part1(min1, max1))
+  println(part2(min1, max1))
 
   def part1(min: Int, max: Int): Int = {
 
@@ -35,6 +36,45 @@ object Main extends App {
         hasRepeating = true
       }
     }
+    (x, hasRepeating)
+  }
+
+  def part2(min: Int, max: Int): Int = {
+
+    var sum = 0
+    var x = min
+    while(x <= max) {
+      val (x2, hasRepeating) = fix2(x)
+      if(hasRepeating && x2 <= max){
+        sum += 1
+      }
+      x = x2 + 1
+    }
+    sum
+  }
+
+  def fix2(xOrig: Int): (Int, Boolean) = {
+    var x = xOrig
+    val nbrDigits = getNbrDigits(x)
+
+    var repeatCount = 0
+    var repeatCounts = List[Int]()
+    0.until(nbrDigits - 1).reverse.foreach { i =>
+      val prevDigit = getDigit(x, i + 1)
+      if(getDigit(x, i) < prevDigit) {
+        x = setDigit(x, i, prevDigit)
+      }
+      if (getDigit(x, i) == prevDigit){
+        repeatCount += 1
+      } else {
+        repeatCounts = repeatCount +: repeatCounts
+        repeatCount = 0
+      }
+      if(i == 0) {
+        repeatCounts = repeatCount +: repeatCounts
+      }
+    }
+    val hasRepeating = repeatCounts.exists { _ == 1 }
     (x, hasRepeating)
   }
 
