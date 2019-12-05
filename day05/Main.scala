@@ -6,9 +6,11 @@ object Main extends App {
 
   val filename = "input.txt"
 
-  val input = Array(1)
+  val input1 = Array(1)
+  val input2 = Array(5)
 
-  solve(preprocess(Source.fromFile(filename).getLines), input)
+  solve(preprocess(Source.fromFile(filename).getLines), input1)
+  solve(preprocess(Source.fromFile(filename).getLines), input2)
 
   def preprocess(lines: Iterator[String]): Array[Int] = {
     val q = Queue[Int]()
@@ -32,26 +34,66 @@ object Main extends App {
         val b = getVal(program, i + 2, paramModes(1))
         val dest = program(i + 3)
         program(dest) = a + b
+        i += nbrSteps(opcode)
       } else if (opcode == 2) {
         val a = getVal(program, i + 1, paramModes(0))
         val b = getVal(program, i + 2, paramModes(1))
         val dest = program(i + 3)
         program(dest) = a * b
+        i += nbrSteps(opcode)
       } else if (opcode == 3) {
         val a = input(inputIndex)
         inputIndex += 1
         val dest = program(i + 1)
         program(dest) = a
+        i += nbrSteps(opcode)
       } else if (opcode == 4) {
         val a = getVal(program, i + 1, paramModes(0))
         println(a)
+        i += nbrSteps(opcode)
+      } else if (opcode == 5) {
+        val a = getVal(program, i + 1, paramModes(0))
+        val b = getVal(program, i + 2, paramModes(1))
+        if (a != 0) {
+          i = b
+        } else {
+          i += nbrSteps(opcode)
+        }
+      } else if (opcode == 6) {
+        val a = getVal(program, i + 1, paramModes(0))
+        val b = getVal(program, i + 2, paramModes(1))
+        if (a == 0) {
+          i = b
+        } else {
+          i += nbrSteps(opcode)
+        }
+      } else if (opcode == 7) {
+        val a = getVal(program, i + 1, paramModes(0))
+        val b = getVal(program, i + 2, paramModes(1))
+        val c = program(i + 3)
+        if (a < b) {
+          program(c) = 1
+        } else {
+          program(c) = 0
+        }
+        i += nbrSteps(opcode)
+      } else if (opcode == 8) {
+        val a = getVal(program, i + 1, paramModes(0))
+        val b = getVal(program, i + 2, paramModes(1))
+        val c = program(i + 3)
+        if (a == b) {
+          program(c) = 1
+        } else {
+          program(c) = 0
+        }
+        i += nbrSteps(opcode)
       } else if (opcode == 99) {
         return program(0)
       } else {
         println("error!")
+        return -1
       }
 
-      i += nbrSteps(opcode)
     }
     program(0)
   }
@@ -82,6 +124,8 @@ object Main extends App {
     opcode match {
       case 3 => 2
       case 4 => 2
+      case 5 => 3
+      case 6 => 3
       case _ => 4
     }
   }
