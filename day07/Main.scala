@@ -3,17 +3,49 @@ import scala.io.Source
 import scala.collection.mutable.Queue
 import scala.collection.mutable.Map
 
+
+case class State(instructions: Array[Int], var sp: Int, var inputs: List[Int], var outputs: List[Int])
+
 object Main extends App {
 
-  val program = "input.txt"
+  val program1 = "input.txt"
   //val program = "test1.txt"
-  val phases = List(0,1,2,3,4)
+  val program2 = "test2.txt" // 139629729
 
+  val phases1 = List(0,1,2,3,4)
+  val phases2 = List(5,6,7,8,9)
 
-  println(solve(program, phases, 0))
+  println(solve(program1, phases1, 0))
+  //println(solve2(program2, phases2, 0))
+
+  def solve2(program: String, phases: List[Int], prevSignal: Int): Int = {
+    var cache = Map[(List[Int], Int), Int]()
+    findHighest2(program, phases.permutations.toList)
+  }
+
+  def findHighest2(program: String, phasePermutations: List[List[Int]]): Int = {
+    phasePermutations.map { phases =>
+
+      val states = Array.fill(phases.size)(State(readFile(program), 0, List(), List()))
+      var prevSignal = 0
+
+      while (true) {
+        0.until(phases.size).foreach { i =>
+          var state = states(i)
+          state.inputs = List(phases(i), prevSignal)
+          state = runProgram(state)
+          if(state.outputs.isEmpty) {
+            return prevSignal
+          }
+          prevSignal = state.outputs.head
+          state.outputs = state.outputs.tail
+        }
+      }
+      prevSignal
+    }.max
+  }
 
   def solve(program: String, phases: List[Int], prevSignal: Int): Int = {
-
     var cache = Map[(List[Int], Int), Int]()
     findHighest(program, phases, 0, cache)
   }
@@ -27,8 +59,9 @@ object Main extends App {
     }
 
     val signals = phases.map { p =>
-      val instructions = readFile(program)
-      val signal = runProgram(instructions, Array(p, prevSignal))
+      var state = State(readFile(program), 0, List(p, prevSignal), List())
+      state = runProgram(state)
+      val signal = state.outputs.last
       findHighest(program, phases.filter( _ != p), signal, cache)
     }
 
@@ -47,11 +80,11 @@ object Main extends App {
     arr
   }
 
-  def runProgram(program: Array[Int], input: Array[Int]): Int = {
-    var inputIndex = 0
-    var i = 0
+  def runProgram(state: State): State = {
+    var i = state.sp
+    var program = state.instructions
     var opcode = -1
-    var output = -1
+    var output = Int.MinValue
     while (opcode != 99) {
       opcode = getOpcode(program(i))
       val paramModes = getParamModes(opcode, program(i))
@@ -68,15 +101,19 @@ object Main extends App {
         program(dest) = a * b
         i += nbrSteps(opcode)
       } else if (opcode == 3) {
-        val a = input(inputIndex)
-        inputIndex += 1
+        if(state.inputs.isEmpty) {
+          state.sp = i
+          return state
+        }
+        val a = state.inputs.head
+        state.inputs = state.inputs.tail
         val dest = program(i + 1)
         program(dest) = a
         i += nbrSteps(opcode)
       } else if (opcode == 4) {
         val a = getVal(program, i + 1, paramModes(0))
         i += nbrSteps(opcode)
-        output = a
+        state.outputs = state.outputs :+ a
       } else if (opcode == 5) {
         val a = getVal(program, i + 1, paramModes(0))
         val b = getVal(program, i + 2, paramModes(1))
@@ -114,14 +151,15 @@ object Main extends App {
         }
         i += nbrSteps(opcode)
       } else if (opcode == 99) {
-        return output
+        state.sp = i
+        return state
       } else {
         println("error!")
-        return -1
+        state
       }
-
     }
-    return output
+    state.sp = i
+    return state
   }
 
   def getVal(program: Array[Int], i: Int, mode: Int): Int = {
