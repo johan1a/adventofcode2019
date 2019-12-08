@@ -7,6 +7,7 @@ object Main extends App {
   val height = 6
 
   println(solve(input, width, height))
+  solve2(input, width, height)
 
   def solve(filename: String, width: Int, height: Int): Int = {
     val digits: String = Source.fromFile(filename).getLines.toList.head
@@ -46,6 +47,34 @@ object Main extends App {
       digitsLeftInLayer -= 1
     }
     nbrOnesInMinLayer * nbrTwosInMinLayer
+  }
+
+  def solve2(filename: String, width: Int, height: Int): String = {
+    val digits: String = Source.fromFile(filename).getLines.toList.head
+    val img = Array.fill(height * width)('2')
+
+    var pos = 0
+
+    0.until(digits.length).foreach { i =>
+      val layerPos = pos % (width * height)
+
+      if(img(layerPos) == '2' && digits(pos) != '2') {
+        img(layerPos) = digits(pos)
+      }
+
+      pos += 1
+    }
+    pos = 0
+    println("")
+    0.until(height).foreach { row =>
+      0.until(width).foreach { col =>
+        print(img(pos))
+        pos += 1
+      }
+      println("")
+    }
+    println("")
+    img.mkString
   }
 
 }
