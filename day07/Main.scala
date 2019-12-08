@@ -9,30 +9,37 @@ case class State(instructions: Array[Int], var sp: Int, var inputs: List[Int], v
 object Main extends App {
 
   val program1 = "input.txt"
-  //val program = "test1.txt"
   val program2 = "test2.txt" // 139629729
 
   val phases1 = List(0,1,2,3,4)
   val phases2 = List(5,6,7,8,9)
 
   println(solve(program1, phases1, 0))
-  //println(solve2(program2, phases2, 0))
+  println(solve2(program1, phases2, 0))
 
   def solve2(program: String, phases: List[Int], prevSignal: Int): Int = {
     var cache = Map[(List[Int], Int), Int]()
     findHighest2(program, phases.permutations.toList)
   }
 
-  def findHighest2(program: String, phasePermutations: List[List[Int]]): Int = {
+  def findHighest2(filename: String, phasePermutations: List[List[Int]]): Int = {
     phasePermutations.map { phases =>
+      tryPermutation(filename, phases)
+    }.max
+  }
 
-      val states = Array.fill(phases.size)(State(readFile(program), 0, List(), List()))
+  def tryPermutation(filename: String, phases: List[Int]): Int = {
+
+      val states = Array.fill(phases.size)(State(readFile(filename), 0, List(), List()))
+      0.until(phases.size).foreach { i =>
+        states(i).inputs = List(phases(i))
+      }
       var prevSignal = 0
 
       while (true) {
         0.until(phases.size).foreach { i =>
           var state = states(i)
-          state.inputs = List(phases(i), prevSignal)
+          state.inputs = state.inputs :+ prevSignal
           state = runProgram(state)
           if(state.outputs.isEmpty) {
             return prevSignal
@@ -42,7 +49,6 @@ object Main extends App {
         }
       }
       prevSignal
-    }.max
   }
 
   def solve(program: String, phases: List[Int], prevSignal: Int): Int = {
@@ -61,7 +67,7 @@ object Main extends App {
     val signals = phases.map { p =>
       var state = State(readFile(program), 0, List(p, prevSignal), List())
       state = runProgram(state)
-      val signal = state.outputs.last
+      val signal = state.outputs.head
       findHighest(program, phases.filter( _ != p), signal, cache)
     }
 
@@ -113,7 +119,7 @@ object Main extends App {
       } else if (opcode == 4) {
         val a = getVal(program, i + 1, paramModes(0))
         i += nbrSteps(opcode)
-        state.outputs = state.outputs :+ a
+        state.outputs = a +: state.outputs
       } else if (opcode == 5) {
         val a = getVal(program, i + 1, paramModes(0))
         val b = getVal(program, i + 2, paramModes(1))
