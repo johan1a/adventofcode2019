@@ -9,16 +9,19 @@ case class State(instructions: Map[BigInt, BigInt], var sp: BigInt, var inputs: 
 
 object Main extends App {
 
-  solve("test1.txt", List())
-  solve("test2.txt", List())
-  solve("test3.txt", List())
+  assert(solve("test1.txt", List()) == "109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99")
+  assert(solve("test2.txt", List()) == "1219070632396864")
+  assert(solve("test3.txt", List()) == "1125899906842624")
+  println("starting real input")
   solve("input.txt", List(1))
 
-  def solve(program: String, input: List[BigInt]): Unit = {
+  def solve(program: String, input: List[BigInt]): String = {
       var state = State(readFile(program), 0, input, List())
       state = runProgram(state)
       println("")
-      println(state.outputs.mkString(","))
+      val output = state.outputs.mkString(",")
+      println(output)
+      output
   }
 
   def readFile(filename: String): Map[BigInt, BigInt] = {
@@ -39,29 +42,29 @@ object Main extends App {
     while (opcode != 99) {
       opcode = getOpcode(program(i))
       val paramModes: List[BigInt] = getParamModes(opcode, program(i))
+      println("")
+      println("sp: " +  i + ", opcode: " + opcode + ", modes: " + paramModes)
       if (opcode.intValue == 1) {
         val a = getVal(program, i + 1, paramModes(0), relativeBase)
         val b = getVal(program, i + 2, paramModes(1), relativeBase)
-        val dest = program(i + 3)
-        program(dest) = a + b
+        val dest = setVal(program, i + 3, paramModes(2), relativeBase, a + b) //getAddr(program, i + 3, paramModes(2), relativeBase)
         i += nbrSteps(opcode)
       } else if (opcode.intValue == 2) {
         val a = getVal(program, i + 1, paramModes(0), relativeBase)
         val b = getVal(program, i + 2, paramModes(1), relativeBase)
-        val dest = program(i + 3)
-        program(dest) = a * b
+        setVal(program, i + 3, paramModes(2), relativeBase, a * b)
+        // println("dest: " + dest)
         i += nbrSteps(opcode)
       } else if (opcode.intValue == 3) {
         var a = state.inputs.head
         state.inputs = state.inputs.tail
-        val dest = program(i + 1)
-        program(dest) = a
+        println("Got input: " + a)
+        setVal(program, i + 1, paramModes(0), relativeBase, a)
         i += nbrSteps(opcode)
       } else if (opcode.intValue == 4) {
         val a = getVal(program, i + 1, paramModes(0), relativeBase)
         i += nbrSteps(opcode)
-        println("output: " + a + " , relativeBase: " + relativeBase + ", mode: " + paramModes)
-        println(i + 1)
+        println("outputting: " + a)
         state.outputs = state.outputs :+ a
       } else if (opcode.intValue == 5) {
         val a = getVal(program, i + 1, paramModes(0), relativeBase)
@@ -82,21 +85,19 @@ object Main extends App {
       } else if (opcode.intValue == 7) {
         val a = getVal(program, i + 1, paramModes(0), relativeBase)
         val b = getVal(program, i + 2, paramModes(1), relativeBase)
-        val c = program(i + 3)
         if (a < b) {
-          program(c) = 1
+          setVal(program, i + 3, paramModes(2), relativeBase, 1)
         } else {
-          program(c) = 0
+          setVal(program, i + 3, paramModes(2), relativeBase, 0)
         }
         i += nbrSteps(opcode)
       } else if (opcode == 8) {
         val a = getVal(program, i + 1, paramModes(0), relativeBase)
         val b = getVal(program, i + 2, paramModes(1), relativeBase)
-        val c = program(i + 3)
         if (a == b) {
-          program(c) = 1
+          setVal(program, i + 3, paramModes(2), relativeBase, 1)
         } else {
-          program(c) = 0
+          setVal(program, i + 3, paramModes(2), relativeBase, 0)
         }
         i += nbrSteps(opcode)
       } else if (opcode == 9) {
@@ -125,6 +126,18 @@ object Main extends App {
       address = i
     }
     return program(address)
+  }
+
+  def setVal(program: Map[BigInt, BigInt], i: BigInt, mode: BigInt, relativeBase: BigInt, value: BigInt): Unit = {
+    var address = BigInt(-1)
+    if(mode == 0) {
+      address = program(i)
+    } else if(mode == 2) {
+      address = program(i) + relativeBase
+    } else if (mode == 1) {
+      throw new Exception("invalid mode")
+    }
+    program(address) = value
   }
 
   def getParamModes(opcode: BigInt, instruction: BigInt): List[BigInt] = {
