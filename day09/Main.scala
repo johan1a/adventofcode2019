@@ -12,6 +12,7 @@ object Main extends App {
   assert(solve("test1.txt", List()) == "109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99")
   assert(solve("test2.txt", List()) == "1219070632396864")
   assert(solve("test3.txt", List()) == "1125899906842624")
+
   println("starting part1")
   solve("input.txt", List(1))
 
@@ -48,13 +49,12 @@ object Main extends App {
       if (opcode.intValue == 1) {
         val a = getVal(program, i + 1, paramModes(0), relativeBase)
         val b = getVal(program, i + 2, paramModes(1), relativeBase)
-        val dest = setVal(program, i + 3, paramModes(2), relativeBase, a + b) //getAddr(program, i + 3, paramModes(2), relativeBase)
+        val dest = setVal(program, i + 3, paramModes(2), relativeBase, a + b)
         i += nbrSteps(opcode)
       } else if (opcode.intValue == 2) {
         val a = getVal(program, i + 1, paramModes(0), relativeBase)
         val b = getVal(program, i + 2, paramModes(1), relativeBase)
         setVal(program, i + 3, paramModes(2), relativeBase, a * b)
-        // println("dest: " + dest)
         i += nbrSteps(opcode)
       } else if (opcode.intValue == 3) {
         var a = state.inputs.head
