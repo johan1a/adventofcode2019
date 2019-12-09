@@ -5,27 +5,27 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.ArrayBuffer
 
 
-case class State(instructions: Map[Long, Long], var sp: Long, var inputs: List[Long], var outputs: List[Long], var relativeBase: Long = 0)
+case class State(instructions: Map[BigInt, BigInt], var sp: BigInt, var inputs: List[BigInt], var outputs: List[BigInt], var relativeBase: BigInt = 0)
 
 object Main extends App {
 
-
   solve("test1.txt", List())
-//  solve("input.txt", List(0))
+  solve("test2.txt", List())
+  solve("test3.txt", List())
+  solve("input.txt", List(1))
 
-  def solve(program: String, input: List[Long]): Unit = {
+  def solve(program: String, input: List[BigInt]): Unit = {
       var state = State(readFile(program), 0, input, List())
-      println(state)
       state = runProgram(state)
       println("")
-      state.outputs.foreach ( println(_) )
+      println(state.outputs.mkString(","))
   }
 
-  def readFile(filename: String): Map[Long, Long] = {
-    val m = Map[Long, Long]()
+  def readFile(filename: String): Map[BigInt, BigInt] = {
+    val m = Map[BigInt, BigInt]().withDefaultValue(BigInt(0))
     Source.fromFile(filename).getLines.foreach { line =>
       line.split(",").zipWithIndex.foreach { (intAndIndex: (String, Int)) =>
-        m(intAndIndex._2) = intAndIndex._1.toLong
+        m(intAndIndex._2) = BigInt(intAndIndex._1.toLong)
       }
     }
     m
@@ -34,40 +34,36 @@ object Main extends App {
   def runProgram(state: State): State = {
     var i = state.sp
     var program = state.instructions
-    var opcode: Long = -1
-    var output = Long.MinValue
+    var opcode: BigInt = -1
     var relativeBase = state.relativeBase
     while (opcode != 99) {
       opcode = getOpcode(program(i))
-      val paramModes: List[Long] = getParamModes(opcode, program(i))
-      if (opcode == 1) {
+      val paramModes: List[BigInt] = getParamModes(opcode, program(i))
+      if (opcode.intValue == 1) {
         val a = getVal(program, i + 1, paramModes(0), relativeBase)
         val b = getVal(program, i + 2, paramModes(1), relativeBase)
         val dest = program(i + 3)
         program(dest) = a + b
         i += nbrSteps(opcode)
-      } else if (opcode == 2) {
+      } else if (opcode.intValue == 2) {
         val a = getVal(program, i + 1, paramModes(0), relativeBase)
         val b = getVal(program, i + 2, paramModes(1), relativeBase)
         val dest = program(i + 3)
         program(dest) = a * b
         i += nbrSteps(opcode)
-      } else if (opcode == 3) {
-        if(state.inputs.isEmpty) {
-          state.sp = i
-          return state
-        }
-        val a = state.inputs.head
+      } else if (opcode.intValue == 3) {
+        var a = state.inputs.head
         state.inputs = state.inputs.tail
         val dest = program(i + 1)
         program(dest) = a
         i += nbrSteps(opcode)
-      } else if (opcode == 4) {
+      } else if (opcode.intValue == 4) {
         val a = getVal(program, i + 1, paramModes(0), relativeBase)
         i += nbrSteps(opcode)
-        println("outputting: " + a)
-        state.outputs = a +: state.outputs
-      } else if (opcode == 5) {
+        println("output: " + a + " , relativeBase: " + relativeBase + ", mode: " + paramModes)
+        println(i + 1)
+        state.outputs = state.outputs :+ a
+      } else if (opcode.intValue == 5) {
         val a = getVal(program, i + 1, paramModes(0), relativeBase)
         val b = getVal(program, i + 2, paramModes(1), relativeBase)
         if (a != 0) {
@@ -75,7 +71,7 @@ object Main extends App {
         } else {
           i += nbrSteps(opcode)
         }
-      } else if (opcode == 6) {
+      } else if (opcode.intValue == 6) {
         val a = getVal(program, i + 1, paramModes(0), relativeBase)
         val b = getVal(program, i + 2, paramModes(1), relativeBase)
         if (a == 0) {
@@ -83,7 +79,7 @@ object Main extends App {
         } else {
           i += nbrSteps(opcode)
         }
-      } else if (opcode == 7) {
+      } else if (opcode.intValue == 7) {
         val a = getVal(program, i + 1, paramModes(0), relativeBase)
         val b = getVal(program, i + 2, paramModes(1), relativeBase)
         val c = program(i + 3)
@@ -105,7 +101,7 @@ object Main extends App {
         i += nbrSteps(opcode)
       } else if (opcode == 9) {
         val a = getVal(program, i + 1, paramModes(0), relativeBase)
-        relativeBase = a
+        relativeBase += a
         i += nbrSteps(opcode)
       } else if (opcode == 99) {
         state.sp = i
@@ -119,19 +115,22 @@ object Main extends App {
     return state
   }
 
-  def getVal(program: Map[Long, Long], i: Long, mode: Long, relativeBase: Long): Long = {
+  def getVal(program: Map[BigInt, BigInt], i: BigInt, mode: BigInt, relativeBase: BigInt): BigInt = {
+    var address = BigInt(-1)
     if(mode == 0) {
-      return program(program(i))
+      address = program(i)
     } else if(mode == 2) {
-      return program(program(i) + relativeBase)
+      address = program(i) + relativeBase
+    } else {
+      address = i
     }
-    return program(i)
+    return program(address)
   }
 
-  def getParamModes(opcode: Long, instruction: Long): List[Long] = {
+  def getParamModes(opcode: BigInt, instruction: BigInt): List[BigInt] = {
     var digits = instruction / 100 // remove opcode
     var paramsLeft: Int = nbrSteps(opcode).toInt - 1
-    var modes = List[Long]()
+    var modes = List[BigInt]()
     while(digits > 0) {
       modes = modes :+ (digits % 10)
       digits /= 10
@@ -143,39 +142,19 @@ object Main extends App {
     modes
   }
 
-  def nbrSteps(opcode: Long): Long = {
-    opcode match {
-      case 3 => 2
-      case 4 => 2
-      case 5 => 3
-      case 6 => 3
-      case 9 => 2
-      case _ => 4
+  def nbrSteps(opcode: BigInt): BigInt = {
+    opcode.intValue match {
+      case 3 => BigInt(2)
+      case 4 => BigInt(2)
+      case 5 => BigInt(3)
+      case 6 => BigInt(3)
+      case 9 => BigInt(2)
+      case _ => BigInt(4)
     }
   }
 
-  def getOpcode(x: Long): Long = {
+  def getOpcode(x: BigInt): BigInt = {
     return x % 100
-  }
-
-  def getNbrDigits(xOrig: Long): Long = {
-    var sum = 0
-    var x = xOrig
-    while(x > 0) {
-      x = x / 10
-      sum += 1
-    }
-    sum
-  }
-
-  def getDigit(x: Long, i: Long): Long = {
-    var k = x / Math.pow(10, i)
-    (k % 10).toLong
-  }
-
-  def setDigit(x: Long, i: Long, newDigit: Long): Long = {
-    val digitValue = (getDigit(x, i) * Math.pow(10, i)).toLong
-    x - digitValue + (newDigit * Math.pow(10, i)).toLong
   }
 
 }
