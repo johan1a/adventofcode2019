@@ -12,8 +12,11 @@ object Main extends App {
   assert(solve("test1.txt", List()) == "109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99")
   assert(solve("test2.txt", List()) == "1219070632396864")
   assert(solve("test3.txt", List()) == "1125899906842624")
-  println("starting real input")
+  println("starting part1")
   solve("input.txt", List(1))
+
+  println("starting part2")
+  solve("input.txt", List(2))
 
   def solve(program: String, input: List[BigInt]): String = {
       var state = State(readFile(program), 0, input, List())
@@ -42,8 +45,6 @@ object Main extends App {
     while (opcode != 99) {
       opcode = getOpcode(program(i))
       val paramModes: List[BigInt] = getParamModes(opcode, program(i))
-      println("")
-      println("sp: " +  i + ", opcode: " + opcode + ", modes: " + paramModes)
       if (opcode.intValue == 1) {
         val a = getVal(program, i + 1, paramModes(0), relativeBase)
         val b = getVal(program, i + 2, paramModes(1), relativeBase)
@@ -58,13 +59,11 @@ object Main extends App {
       } else if (opcode.intValue == 3) {
         var a = state.inputs.head
         state.inputs = state.inputs.tail
-        println("Got input: " + a)
         setVal(program, i + 1, paramModes(0), relativeBase, a)
         i += nbrSteps(opcode)
       } else if (opcode.intValue == 4) {
         val a = getVal(program, i + 1, paramModes(0), relativeBase)
         i += nbrSteps(opcode)
-        println("outputting: " + a)
         state.outputs = state.outputs :+ a
       } else if (opcode.intValue == 5) {
         val a = getVal(program, i + 1, paramModes(0), relativeBase)
