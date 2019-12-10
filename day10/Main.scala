@@ -1,36 +1,41 @@
 import scala.io.Source
 
-case class Asteroid(x: Int, y: Int)
+case class Asteroid(x: Double, y: Double)
 
 
 object Main extends App {
 
-  println(solve("test0.txt"))
-  println(solve("test1.txt")) // 5,8 33
-  println(solve("test2.txt")) // 1,2 35
-
-  println(solve("input.txt"))
+  assert(solve("test1.txt") == Asteroid(5,8)) // 33
+  assert(solve("test2.txt") == Asteroid(1,2)) // 35
+  assert(solve("test3.txt") == Asteroid(6,3)) // 41
+  assert(solve("test4.txt") == Asteroid(11,13)) // 210
+  println("")
+  solve("input.txt")
 
   def solve(filename: String): Asteroid = {
     var asteroids = parseFile(filename)
 
-    asteroids.maxBy { a => countVisible(asteroids, a) }
+    val best = asteroids.maxBy { a => countVisible(asteroids, a) }
+    val count = countVisible(asteroids, best)
+    println(best + ", " + count + " of " + asteroids.size)
+    best
   }
 
   def countVisible(asteroids: List[Asteroid], src: Asteroid): Int = {
     val sorted = asteroids.filter { a => a != src }.sortWith { (a, b) => dist(src, a) < dist(src, b) }.toList
-    val lines = sorted.map { a => makeLine(src, a) }.toSet
-    lines.size
+    assert(sorted.size == asteroids.size - 1)
+    sorted.map { a => makeVector(src, a) }.toSet.size
   }
 
   // Lines are represented by the k in y = kx + m
   // with a in origo
-  def makeLine(a: Asteroid, b: Asteroid): Double = {
-    val divisor = (b.x - a.x)
-    if (divisor == 0) {
-      return Double.MaxValue
-    }
-    (b.y - a.y) / divisor
+  def makeVector(a: Asteroid, b: Asteroid): (Double, Double) = {
+    val length = dist(a, b)
+    (precision((b.y - a.y) / length), precision((b.x - a.x) / length))
+  }
+
+  def precision(k: Double, digits: Int = 13): Double = {
+    (k * Math.pow(10, digits)).floor / Math.pow(10, digits)
   }
 
   def dist(a: Asteroid, b: Asteroid): Double = {
@@ -43,7 +48,7 @@ object Main extends App {
     Source.fromFile(filename).getLines.foreach { line =>
       line.zipWithIndex.foreach { entry =>
         if (entry._1 == '#') {
-          val x = entry._2.toInt
+          val x = entry._2.toDouble
           asteroids = (new Asteroid(x, y)) +: asteroids
         }
       }
