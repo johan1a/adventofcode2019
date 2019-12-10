@@ -14,6 +14,10 @@ object Main extends App {
   println("")
   solve("input.txt")
 
+  println("")
+  println(solve2("test5.txt", Asteroid(8, 3), 35, 17, 5))
+  println(solve2("input.txt", Asteroid(26.0,36.0), 200, 42, 42))
+
   def solve(filename: String): Asteroid = {
     var asteroids = parseFile(filename)
 
@@ -21,6 +25,68 @@ object Main extends App {
     val count = countVisible(asteroids, best)
     println(best + ", " + count + " of " + asteroids.size)
     best
+  }
+
+  def solve2(filename: String, station: Asteroid, nbrToEliminate: Int, width: Int, height: Int): Double = {
+    var asteroids = parseFile(filename)
+      .filter(x => x != station)
+      .map { a => (a, makeAngle(makeVector(station, a)))}
+      .sortWith { (a, b) =>
+        if (a._2 == b._2) {
+          dist(station, a._1) > dist(station, b._1)
+        } else {
+          a._2 < b._2
+        }
+      }
+      .toArray
+    var nbrEliminated = 0
+    val startAngle = Math.PI
+    var i = 0
+    var prevEliminatedAngle = Double.MinValue
+    asteroids.foreach(a => println(a + " " + dist(station, a._1)))
+    while (asteroids((i + 1) % asteroids.size)._2 <= startAngle) {
+      i = (i + 1) % asteroids.size
+    }
+    println("starting i: " + i)
+    //var eliminated = Queue[(Asteroid, Double)]()
+    var lastEliminated: Asteroid = null
+    while (nbrEliminated < nbrToEliminate) {
+      val asteroid = asteroids(i)
+      if (asteroid != null && asteroid._2 != prevEliminatedAngle) {
+        draw(asteroids, width, height)
+        println("eliminating: " + asteroid)
+        prevEliminatedAngle = asteroid._2
+        lastEliminated = asteroid._1
+        asteroids(i) = null
+        nbrEliminated += 1
+      }
+      i = i - 1
+      if (i == -1) {
+        i = asteroids.size - 1
+      }
+    }
+    println(lastEliminated)
+    lastEliminated.x * 100 + lastEliminated.y
+  }
+
+  def draw(asteroids: Array[(Asteroid, Double)], width: Int, height: Int): Unit = {
+    val img = Array.fill(height)(Array.fill(width)('.'))
+    println("")
+    asteroids.foreach { a =>
+      if(a != null) {
+        img(a._1.y.toInt)(a._1.x.toInt) = '#'
+      }
+    }
+    0.until(height).foreach { row =>
+      0.until(width).foreach { col =>
+        if(col == 8 && row == 3) {
+          print("O")
+        } else {
+          print(img(row)(col))
+        }
+      }
+      println("")
+    }
   }
 
   def countVisible(asteroids: List[Asteroid], src: Asteroid): Int = {
@@ -33,18 +99,21 @@ object Main extends App {
   // with a in origo
   def makeVector(a: Asteroid, b: Asteroid): (Double, Double) = {
     val length = dist(a, b)
-    //println(makeAngle(precision((b.y - a.y) / length), precision((b.x - a.x) / length)))
+    // println(makeAngle(precision((b.y - a.y) / length), precision((b.x - a.x) / length)))
 
     (precision((b.y - a.y) / length), precision((b.x - a.x) / length))
   }
 
   def makeAngle(xy: (Double, Double)): Double = {
-    val angle = Math.atan2(xy._2,  xy._1)
+    var angle = Math.atan2(xy._2,  xy._1)
+
     if(angle < 0) {
-      Math.PI - angle
+      angle = 2 * Math.PI + angle
     } else {
-      angle
+      angle = angle % (2 * Math.PI)
     }
+    assert(0 <= angle && angle < 2 * Math.PI)
+    angle
   }
 
   def precision(k: Double, digits: Int = 13): Double = {
