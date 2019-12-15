@@ -21,7 +21,6 @@ object Main extends App {
 
   def solve(filename: String): Asteroid = {
     var asteroids = parseFile(filename)
-
     val best = asteroids.maxBy { a => countVisible(asteroids, a) }
     val count = countVisible(asteroids, best)
     println(best + ", " + count + " of " + asteroids.size)
@@ -40,14 +39,14 @@ object Main extends App {
         }
       }
       .toArray
-    var nbrEliminated = 0
     val startAngle = 3 * Math.PI / 2.0
     var i = 0
-    var prevEliminatedAngle = Double.MinValue
     while (asteroids((i + 1) % asteroids.size)._2 <= startAngle) {
       i = (i + 1) % asteroids.size
     }
+    var nbrEliminated = 0
     var prevEliminated: Asteroid = null
+    var prevEliminatedAngle = Double.MinValue
     while (nbrEliminated < nbrToEliminate) {
       val asteroid = asteroids(i)
       if (asteroid != null && asteroid._2 != prevEliminatedAngle) {
