@@ -5,20 +5,19 @@ case class Asteroid(x: Double, y: Double)
 
 object Main extends App {
 
-  println(makeAngle((0,-1)))
-
-  assert(solve("test1.txt") == Asteroid(5,8)) // 33
-  assert(solve("test2.txt") == Asteroid(1,2)) // 35
-  assert(solve("test3.txt") == Asteroid(6,3)) // 41
-  assert(solve("test4.txt") == Asteroid(11,13)) // 210
+  assert(solve("test1.txt") == Asteroid(5, 8)) // 33
+  assert(solve("test2.txt") == Asteroid(1, 2)) // 35
+  assert(solve("test3.txt") == Asteroid(6, 3)) // 41
+  assert(solve("test4.txt") == Asteroid(11, 13)) // 210
   println("part1:")
   solve("input.txt")
 
-  assert(solve2("test5.txt", Asteroid(8, 3), 35, 17, 5) == 1303)
-  val part2Result = solve2("input.txt", Asteroid(26.0,36.0), 200, 42, 42)
-  assert(part2Result == 829.0)
+  val part2Test = solve2("test5.txt", Asteroid(8, 3), 35, 17, 5)
+  assert(part2Test == 1303)
+  val part2Result = solve2("input.txt", Asteroid(26.0, 36.0), 200, 42, 42)
   println("part2:")
   println(part2Result)
+  assert(part2Result == 829.0)
 
   def solve(filename: String): Asteroid = {
     var asteroids = parseFile(filename)
@@ -32,56 +31,47 @@ object Main extends App {
   def solve2(filename: String, station: Asteroid, nbrToEliminate: Int, width: Int, height: Int): Double = {
     var asteroids = parseFile(filename)
       .filter(x => x != station)
-      .map { a => (a, makeAngle(makeVector(station, a)))}
+      .map { a => (a, makeAngle(station, a)) }
       .sortWith { (a, b) =>
         if (a._2 == b._2) {
-          dist(station, a._1) > dist(station, b._1)
+          dist(station, a._1) < dist(station, b._1)
         } else {
           a._2 < b._2
         }
       }
       .toArray
     var nbrEliminated = 0
-    val startAngle = Math.PI
+    val startAngle = 3 * Math.PI / 2.0
     var i = 0
     var prevEliminatedAngle = Double.MinValue
     while (asteroids((i + 1) % asteroids.size)._2 <= startAngle) {
       i = (i + 1) % asteroids.size
     }
-    var lastEliminated: Asteroid = null
+    var prevEliminated: Asteroid = null
     while (nbrEliminated < nbrToEliminate) {
       val asteroid = asteroids(i)
       if (asteroid != null && asteroid._2 != prevEliminatedAngle) {
         prevEliminatedAngle = asteroid._2
-        lastEliminated = asteroid._1
+        prevEliminated = asteroid._1
         asteroids(i) = null
         nbrEliminated += 1
       }
-      i = i - 1
-      if (i == -1) {
-        i = asteroids.size - 1
-      }
+      i = (i + 1) % asteroids.size
     }
-    lastEliminated.x * 100 + lastEliminated.y
+    prevEliminated.x * 100 + prevEliminated.y
   }
 
   def countVisible(asteroids: List[Asteroid], src: Asteroid): Int = {
     val sorted = asteroids.filter { a => a != src }.sortWith { (a, b) => dist(src, a) < dist(src, b) }.toList
     assert(sorted.size == asteroids.size - 1)
-    sorted.map { a => makeAngle(makeVector(src, a)) }.toSet.size
+    sorted.map { a => makeAngle(src, a) }.toSet.size
   }
 
-  // Lines are represented by the k in y = kx + m
-  // with a in origo
-  def makeVector(a: Asteroid, b: Asteroid): (Double, Double) = {
+  def makeAngle(a: Asteroid, b: Asteroid): Double = {
     val length = dist(a, b)
-    (precision((b.y - a.y) / length), precision((b.x - a.x) / length))
-  }
+    var angle = Math.atan2(precision((b.y - a.y) / length), precision((b.x - a.x) / length))
 
-  def makeAngle(xy: (Double, Double)): Double = {
-    var angle = Math.atan2(xy._2,  xy._1)
-
-    if(angle < 0) {
+    if (angle < 0) {
       angle = 2 * Math.PI + angle
     } else {
       angle = angle % (2 * Math.PI)
