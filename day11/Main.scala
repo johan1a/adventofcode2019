@@ -1,59 +1,31 @@
 import scala.collection.mutable
-import scala.collection.mutable.Map
 import scala.io.Source
-
-val LEFT = "L"
-val RIGHT = "R"
-val UP = "U"
-val DOWN = "D"
-
-val BLACK = "."
-val WHITE = "#"
-
-case class State(instructions: mutable.Map[BigInt, BigInt],
-                 var sp: BigInt,
-                 var inputs: List[BigInt],
-                 var outputs: List[BigInt],
-                 var relativeBase: BigInt = 0,
-                 var halted: Boolean = false)
-
-case class RobotState(x: Int, y: Int, direction: String = UP)
-
-val colorVals = Map(BLACK -> 0, WHITE -> 1)
 
 object Main extends App {
 
-  println("starting part1")
-  solve("input.txt")
+  val LEFT = "L"
+  val RIGHT = "R"
+  val UP = "U"
+  val DOWN = "D"
 
-  def solve(program: String): String = {
-    val hull = mutable.Map[(Int, Int), String]().withDefaultValue(BLACK)
-    var state = State(readFile(program), 0, input, List())
-    val robotState = new RobotState(0, 0)
-    while (!state.halted) {
-      val color = hull((robotState.x, robotState.y))
-      state.inputs = List(colorVals(color))
-      state = runProgram(state)
-      if(state.outputs.nonEmpty) {
+  val LEFT_TURN = 0
+  val RIGHT_TURN = 1
 
-      }
+  val BLACK = "."
+  val WHITE = "#"
 
-    }
-    println("")
-    val output = state.outputs.mkString(",")
-    println(output)
-    output
-  }
+  val colorToInt = Map(BLACK -> 0, WHITE -> 1)
+  val intToColor = Map(0 -> BLACK, 1 -> WHITE)
 
-  def readFile(filename: String): mutable.Map[BigInt, BigInt] = {
-    val m = Map[BigInt, BigInt]().withDefaultValue(BigInt(0))
-    Source.fromFile(filename).getLines.foreach { line =>
-      line.split(",").zipWithIndex.foreach { (intAndIndex: (String, Int)) =>
-        m(intAndIndex._2) = BigInt(intAndIndex._1.toLong)
-      }
-    }
-    m
-  }
+  val nextDir = Map(
+    (UP, LEFT_TURN) -> LEFT,
+    (UP, RIGHT_TURN) -> RIGHT,
+    (LEFT, LEFT_TURN) -> DOWN,
+    (LEFT, RIGHT_TURN) -> UP,
+    (DOWN, LEFT_TURN) -> RIGHT,
+    (DOWN, RIGHT_TURN) -> LEFT,
+    (RIGHT, LEFT_TURN) -> UP,
+    (RIGHT, RIGHT_TURN) -> DOWN)
 
   val ADD = 1
   val MUL = 2
@@ -66,34 +38,94 @@ object Main extends App {
   val RELATIVE_BASE = 9
   val EXIT = 99
 
-  def add(state: State, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
+  case class ComputerState(instructions: mutable.Map[BigInt, BigInt],
+                           var sp: BigInt = 0,
+                           var inputs: List[BigInt] = List(),
+                           var outputs: List[BigInt] = List(),
+                           var relativeBase: BigInt = 0,
+                           var halted: Boolean = false)
+
+  case class RobotState(var pos: (Int, Int) = (0, 0), var direction: String = UP)
+
+  val part1Result = solve("input.txt")
+  println(s"Part 1: ${part1Result}")
+
+  def solve(program: String): Int = {
+    val hull = mutable.Map[(Int, Int), String]().withDefaultValue(BLACK)
+    var computerState = ComputerState(readFile(program))
+    val robotState = RobotState()
+    var painted = Set[(Int, Int)]()
+    while (!computerState.halted) {
+      val color = hull(robotState.pos)
+      computerState.inputs = List(colorToInt(color))
+      computerState = runProgram(computerState)
+
+      if (computerState.outputs.nonEmpty) {
+        val newColor = intToColor(computerState.outputs.head.toInt)
+        val newDir = nextDir((robotState.direction, computerState.outputs.last.toInt))
+        computerState.outputs = List()
+        if (hull(robotState.pos) != newColor) {
+          hull(robotState.pos) = newColor
+          painted = painted ++ Set(robotState.pos)
+        }
+        robotState.pos = walkForward(robotState.pos, newDir)
+        robotState.direction = newDir
+      }
+    }
+    painted.size
+  }
+
+  def walkForward(xy: (Int, Int), direction: String): (Int, Int) = {
+    val x = xy._1
+    val y = xy._2
+    direction match {
+      case UP => (x, y + 1)
+      case LEFT => (x - 1, y)
+      case RIGHT => (x + 1, y)
+      case DOWN => (x, y - 1)
+    }
+  }
+
+  def readFile(filename: String): mutable.Map[BigInt, BigInt] = {
+    val m = mutable.Map[BigInt, BigInt]().withDefaultValue(BigInt(0))
+    val file = Source.fromFile(filename)
+    file.getLines.foreach { line =>
+      line.split(",").zipWithIndex.foreach { (intAndIndex: (String, Int)) =>
+        m(intAndIndex._2) = BigInt(intAndIndex._1.toLong)
+      }
+    }
+    file.close()
+    m
+  }
+
+  def add(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
     val a = getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
     val b = getVal(state.instructions, state.sp + 2, paramModes(1), relativeBase)
     setVal(state.instructions, state.sp + 3, paramModes(2), relativeBase, a + b)
     state.sp += nbrSteps(ADD)
   }
 
-  def mul(state: State, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
+  def mul(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
     val a = getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
     val b = getVal(state.instructions, state.sp + 2, paramModes(1), relativeBase)
     setVal(state.instructions, state.sp + 3, paramModes(2), relativeBase, a * b)
     state.sp += nbrSteps(MUL)
   }
 
-  def input(state: State, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
+  def input(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
     val a = state.inputs.head
     state.inputs = state.inputs.tail
     setVal(state.instructions, state.sp + 1, paramModes.head, relativeBase, a)
     state.sp += nbrSteps(INPUT)
   }
 
-  def output(state: State, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
+  def output(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
     val a = getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
     state.sp += nbrSteps(OUTPUT)
     state.outputs = state.outputs :+ a
   }
 
-  def jnz(state: State, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
+  def jnz(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
     val a = getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
     val b = getVal(state.instructions, state.sp + 2, paramModes(1), relativeBase)
     if (a != 0) {
@@ -103,7 +135,7 @@ object Main extends App {
     }
   }
 
-  def jez(state: State, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
+  def jez(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
     val a = getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
     val b = getVal(state.instructions, state.sp + 2, paramModes(1), relativeBase)
     if (a == 0) {
@@ -113,7 +145,7 @@ object Main extends App {
     }
   }
 
-  def lessThan(state: State, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
+  def lessThan(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
     val a = getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
     val b = getVal(state.instructions, state.sp + 2, paramModes(1), relativeBase)
     if (a < b) {
@@ -124,7 +156,7 @@ object Main extends App {
     state.sp += nbrSteps(LESS_THAN)
   }
 
-  def equal(state: State, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
+  def equal(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
     val a = getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
     val b = getVal(state.instructions, state.sp + 2, paramModes(1), relativeBase)
     if (a == b) {
@@ -135,14 +167,14 @@ object Main extends App {
     state.sp += nbrSteps(EQUALS)
   }
 
-  def setRelativeBase(state: State, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
+  def setRelativeBase(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
     val a = getVal(state.instructions, state.sp + 1, paramModes(0), state.relativeBase)
     state.relativeBase += a
     state.sp += nbrSteps(RELATIVE_BASE)
   }
 
 
-  def runProgram(state: State): State = {
+  def runProgram(state: ComputerState): ComputerState = {
     val program = state.instructions
     var opcode: Int = -1
     var suspended = false
@@ -166,7 +198,10 @@ object Main extends App {
         case EQUALS => equal(state, paramModes, state.relativeBase)
         case RELATIVE_BASE => setRelativeBase(state, paramModes, state.relativeBase)
         case EXIT => state.halted = true
-        case _ => println("Error: Unsupported opcode!")
+        case _ => {
+          println("Error: Unsupported opcode: " + opcode)
+          System.exit(1)
+        }
       }
     }
     state
@@ -206,7 +241,7 @@ object Main extends App {
       paramsLeft -= 1
     }
     0.until(paramsLeft).foreach { i =>
-      modes = modes :+ 0
+      modes = modes :+ BigInt(0)
     }
     modes
   }
