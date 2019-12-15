@@ -47,11 +47,40 @@ object Main extends App {
 
   case class RobotState(var pos: (Int, Int) = (0, 0), var direction: String = UP)
 
-  val part1Result = solve("input.txt")
+  val part1Result = part1("input.txt")
   println(s"Part 1: ${part1Result}")
 
-  def solve(program: String): Int = {
+  println("Part 2:")
+  part2("input.txt")
+
+  def part1(program: String): Int = {
     val hull = mutable.Map[(Int, Int), String]().withDefaultValue(BLACK)
+    solve(program, hull).size
+  }
+
+  def part2(program: String): Unit = {
+    val hull = mutable.Map[(Int, Int), String]().withDefaultValue(BLACK)
+    hull((0, 0)) = WHITE
+    val painted = solve(program, hull)
+    val maxX: Int = painted.maxBy(a => a._1)._1
+    val minX: Int = painted.minBy(a => a._1)._1
+    val maxY: Int = painted.maxBy(a => a._2)._2
+    val minY: Int = painted.minBy(a => a._2)._2
+    val img: Array[Array[String]] = Array.fill((maxY - minY) + 1)(Array.fill((maxX - minX) + 1)(BLACK))
+    println(minY)
+    println(minX)
+    painted.foreach { xy =>
+      img(xy._2 + minY)(xy._1 + minX) = WHITE
+    }
+    img.indices.foreach { row =>
+      img(0).indices.foreach { col =>
+        print(img(row)(col))
+      }
+      println("")
+    }
+  }
+
+  def solve(program: String, hull: mutable.Map[(Int, Int), String]): Set[(Int, Int)] = {
     var computerState = ComputerState(readFile(program))
     val robotState = RobotState()
     var painted = Set[(Int, Int)]()
@@ -72,7 +101,7 @@ object Main extends App {
         robotState.direction = newDir
       }
     }
-    painted.size
+    painted
   }
 
   def walkForward(xy: (Int, Int), direction: String): (Int, Int) = {
