@@ -69,7 +69,7 @@ object Main extends App {
 
   def makeAngle(a: Asteroid, b: Asteroid): Double = {
     val length = dist(a, b)
-    var angle = Math.atan2(precision((b.y - a.y) / length), precision((b.x - a.x) / length))
+    var angle = Math.atan2(round((b.y - a.y) / length), round((b.x - a.x) / length))
 
     if (angle < 0) {
       angle = 2 * Math.PI + angle
@@ -80,7 +80,7 @@ object Main extends App {
     angle
   }
 
-  def precision(k: Double, digits: Int = 13): Double = {
+  def round(k: Double, digits: Int = 13): Double = {
     (k * Math.pow(10, digits)).floor / Math.pow(10, digits)
   }
 
