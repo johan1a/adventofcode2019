@@ -8,7 +8,9 @@ case class Moon(var pos: Vec, var velocity: Vec = Vec(0, 0, 0))
 
 object Main extends App {
 
-  println(part1("input.txt"))
+  val part1Answer = part1("input.txt")
+  println(part1Answer)
+  assert(part1Answer == 8044)
 
   def part1(filename: String): Int = {
     val file = Source.fromFile(filename)
@@ -17,7 +19,6 @@ object Main extends App {
     }.toArray
     simulate(moons, 1000)
   }
-
 
   def simulate(moons: Array[Moon], nbrSteps: Int): Int = {
 
@@ -38,11 +39,15 @@ object Main extends App {
   }
 
   def potentialEnergy(moon: Moon): Int = {
-    Math.abs(moon.pos.x) + Math.abs(moon.pos.y) + Math.abs(moon.pos.z)
+    sum(moon.pos)
   }
 
   def kineticEnergy(moon: Moon): Int = {
-    Math.abs(moon.velocity.x) + Math.abs(moon.velocity.y) + Math.abs(moon.velocity.z)
+    sum(moon.velocity)
+  }
+
+  def sum(vec: Vec): Int = {
+    Math.abs(vec.x) + Math.abs(vec.y) + Math.abs(vec.z)
   }
 
   def updateGravities(moons: Array[Moon]): Unit = {
