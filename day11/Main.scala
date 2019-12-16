@@ -67,12 +67,10 @@ object Main extends App {
     val maxY: Int = painted.maxBy(a => a._2)._2
     val minY: Int = painted.minBy(a => a._2)._2
     val img: Array[Array[String]] = Array.fill((maxY - minY) + 1)(Array.fill((maxX - minX) + 1)(BLACK))
-    println(minY)
-    println(minX)
     painted.foreach { xy =>
-      img(xy._2 + minY)(xy._1 + minX) = WHITE
+      img(xy._2 - minY)(xy._1 - minX) = WHITE
     }
-    img.indices.foreach { row =>
+    img.indices.reverse.foreach { row =>
       img(0).indices.foreach { col =>
         print(img(row)(col))
       }
