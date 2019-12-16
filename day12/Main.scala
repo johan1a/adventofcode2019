@@ -84,10 +84,6 @@ object Main extends App {
     return true
   }
 
-  def singleEnergy(moons: Array[SingleMoon]): Int = {
-    moons.map { moon => Math.abs(moon.pos) * Math.abs(moon.velocity) }.sum
-  }
-
   def simulate(moons: Array[Moon], nbrSteps: Int): Int = {
 
     0.until(nbrSteps).foreach { i =>
