@@ -3,7 +3,7 @@ import scala.io.Source
 
 object Main extends App {
 
-  case class ChemicalQuantity(quantity: Int, name: String)
+  case class ChemicalQuantity(quantity: Long, name: String)
 
   case class Reaction(inputs: List[ChemicalQuantity], output: ChemicalQuantity)
 
@@ -26,15 +26,38 @@ object Main extends App {
   val part1Result = part1("input.txt", "ORE", "FUEL")
   println(s"Part 1: ${part1Result}")
 
-  def part1(filename: String, source: String, target: String, wantedQty: Int = 1): Int = {
+  // assert(part2("test2.txt", "ORE", "FUEL") == 82892753)
+
+
+
+  def part1(filename: String, source: String, target: String, wantedQty: Long = 1): Long = {
     val reactions = parseReactions(filename)
-    val reaction = reactions(target)
-    val wanted = mutable.Map[String, Int]().withDefaultValue(0)
-    wanted(target) = wantedQty
-    resolve(reactions, source, target, wanted)
+    requiredQty(reactions, source, target, wantedQty)
   }
 
-  def resolve(reactions: mutable.Map[String, Reaction], source: String, target: String, wanted: mutable.Map[String, Int]): Int = {
+  def part2(filename: String, source: String, target: String, sourceQty: Long = 1000000000000L): Long = {
+    val reactions = parseReactions(filename)
+    var wantedQty = 460664L
+    var diff = wantedQty
+    var required = -1L
+    while (required != wantedQty && diff > 1) {
+      println("trying: " + wantedQty)
+      required = requiredQty(reactions, source, target, wantedQty)
+      if (required > wantedQty) {
+        wantedQty += diff
+        diff = diff * 2
+      } else if (required < wantedQty) {
+        diff = diff / 2
+        wantedQty -= diff
+      }
+    }
+    wantedQty
+  }
+
+  def requiredQty(reactions: mutable.Map[String, Reaction], source: String, target: String, wantedQty: Long): Long = {
+
+    val wanted = mutable.Map[String, Long]().withDefaultValue(0)
+    wanted(target) = wantedQty
 
     var queue = mutable.Queue[String](target)
 
@@ -60,9 +83,9 @@ object Main extends App {
     wanted(source)
   }
 
-  def getFactor(wantedQty: Int, producedQty: Int): Int = {
-    var sum = 0
-    var factor = 0
+  def getFactor(wantedQty: Long, producedQty: Long): Long = {
+    var sum = 0L
+    var factor = 0L
     while(sum < wantedQty) {
       sum += producedQty
       factor += 1
@@ -86,6 +109,6 @@ object Main extends App {
 
   def makeChemicalQuantity(str: String): ChemicalQuantity = {
     val splitted = str.trim.split(" ")
-    ChemicalQuantity(splitted(0).toInt, splitted(1))
+    ChemicalQuantity(splitted(0).toLong, splitted(1))
   }
 }
