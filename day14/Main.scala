@@ -26,9 +26,12 @@ object Main extends App {
   val part1Result = part1("input.txt", "ORE", "FUEL")
   println(s"Part 1: ${part1Result}")
 
-  // assert(part2("test2.txt", "ORE", "FUEL") == 82892753)
+  assert(part2("test3.txt", "ORE", "FUEL") == 82892753)
+  assert(part2("test4.txt", "ORE", "FUEL") == 5586022)
+  assert(part2("test5.txt", "ORE", "FUEL") == 460664)
 
-
+  val part2Result = part2("input.txt", "ORE", "FUEL")
+  println(s"Part 2: ${part2Result}")
 
   def part1(filename: String, source: String, target: String, wantedQty: Long = 1): Long = {
     val reactions = parseReactions(filename)
@@ -37,22 +40,26 @@ object Main extends App {
 
   def part2(filename: String, source: String, target: String, sourceQty: Long = 1000000000000L): Long = {
     val reactions = parseReactions(filename)
-    var wantedQty = 460664L
-    var diff = wantedQty
-    var required = -1L
-    while (required != wantedQty && diff > 1) {
-      println("trying: " + wantedQty)
-      required = requiredQty(reactions, source, target, wantedQty)
-      if (required > wantedQty) {
-        wantedQty += diff
-        diff = diff * 2
-      } else if (required < wantedQty) {
-        diff = diff / 2
-        wantedQty -= diff
-      }
+    val requiredForOne = requiredQty(reactions, source, target, 1)
+    var guess = sourceQty / requiredForOne
+
+    var required = requiredQty(reactions, source, target, guess)
+
+    var diff = 1L
+    while (required < sourceQty && diff > 0) {
+      diff = ((sourceQty - required) / requiredForOne).toLong
+      guess += diff
+      required = requiredQty(reactions, source, target, guess)
     }
-    wantedQty
+
+    while (required > sourceQty) {
+      guess -= 1
+      required = requiredQty(reactions, source, target, guess)
+    }
+
+    guess
   }
+
 
   def requiredQty(reactions: mutable.Map[String, Reaction], source: String, target: String, wantedQty: Long): Long = {
 
@@ -66,11 +73,10 @@ object Main extends App {
       val reaction = reactions(currTarget)
       queue = queue.tail
 
-      while (wanted(currTarget) > 0) {
-        wanted(currTarget) = wanted(currTarget) - reaction.output.quantity
-        reaction.inputs.foreach { input =>
-          wanted(input.name) += input.quantity
-        }
+      var factor = Math.ceil(wanted(currTarget) / reaction.output.quantity.toDouble).toLong
+      wanted(currTarget) -= factor * reaction.output.quantity
+      reaction.inputs.foreach { input =>
+        wanted(input.name) += factor * input.quantity
       }
 
       reaction.inputs.foreach { input =>
