@@ -17,70 +17,47 @@ object Main extends App {
   val test3Result = part1("test3.txt", "ORE", "FUEL", 1)
   assert(test3Result == 13312)
 
+  val test4Result = part1("test4.txt", "ORE", "FUEL", 1)
+  assert(test4Result == 180697)
 
-  assert(part1("test4.txt", "ORE", "NVRVD", 4) == 139)
-  assert(part1("test4.txt", "ORE", "JNWZP", 4) == 144)
-  assert(part1("test4.txt", "ORE", "MNCFX", 6) == 145)
-  assert(part1("test4.txt", "ORE", "VJHF", 6) == 176)
-  assert(part1("test4.txt", "ORE", "VJHF", 1) == 176)
-  assert(part1("test4.txt", "ORE", "FWMGM", 5) == 1719)
-  assert(part1("test4.txt", "ORE", "RFSQX", 4) == 321)
-  assert(part1("test4.txt", "ORE", "CXFTF", 8) == 139)
-  assert(part1("test4.txt", "ORE", "VPVL", 8) == 839)
+  val test5Result = part1("test5.txt", "ORE", "FUEL", 1)
+  assert(test5Result == 2210736)
 
-  println(part1("test4.txt", "ORE", "VPVL", 2))
-  println(part1("test4.txt", "ORE", "FWMGM", 7))
-  println(part1("test4.txt", "ORE", "CXFTF", 2))
-  println(part1("test4.txt", "ORE", "MNCFX", 11))
-  println(part1("test4.txt", "ORE", "STKFG", 1))
-
-
-  // val test4Result = part1("test4.txt", "ORE", "FUEL", 1)
-  // println(test4Result) // 180697
-
-  // val test5Result = part1("test5.txt", "ORE", "FUEL", 1)
-  // println(test5Result) // 2210736
-
-  // val part1Result = part1("input.txt", "ORE", "FUEL")
-  // println(s"Part 1: ${part1Result}")
+  val part1Result = part1("input.txt", "ORE", "FUEL")
+  println(s"Part 1: ${part1Result}")
 
   def part1(filename: String, source: String, target: String, wantedQty: Int = 1): Int = {
     val reactions = parseReactions(filename)
     val reaction = reactions(target)
-    val needed: Map[Reaction, Int] = resolve(reactions, source, reaction, wantedQty)
-    println(needed)
-    needed.map { entry =>
-      val react = entry._1
-      val wantedOutputQty = entry._2
-      val producedQty = react.output.quantity
-      val requiredInputQty = react.inputs(0).quantity
-      var inputSum = 0
-      var outputSum = 0
-      while (outputSum < wantedOutputQty) {
-        outputSum += producedQty
-        inputSum += requiredInputQty
-      }
-      inputSum
-    }.sum
+    val wanted = mutable.Map[String, Int]().withDefaultValue(0)
+    wanted(target) = wantedQty
+    resolve(reactions, source, target, wanted)
   }
 
-  def resolve(reactions: mutable.Map[String, Reaction], source: String, reaction: Reaction, wantedQty: Int): Map[Reaction, Int] = {
-    val producedQty = reaction.output.quantity
-    var factor = 1
-    if (wantedQty > producedQty) {
-      factor = getFactor(wantedQty, producedQty)
-    }
+  def resolve(reactions: mutable.Map[String, Reaction], source: String, target: String, wanted: mutable.Map[String, Int]): Int = {
 
-    if (reaction.inputs.size == 1 && reaction.inputs(0).name == source) {
-      return Map(reaction -> wantedQty)
-    }
+    var queue = mutable.Queue[String](target)
 
-    reaction.inputs.map { input =>
-      resolve (reactions, source, reactions(input.name), factor * input.quantity)
-    }.reduce { (a,b) => a ++ b.map { case (k, v) =>
-        k -> (v + a.getOrElse(k, 0))
+    while(!queue.isEmpty) {
+      val currTarget = queue.head
+      val reaction = reactions(currTarget)
+      queue = queue.tail
+
+      while (wanted(currTarget) > 0) {
+        wanted(currTarget) = wanted(currTarget) - reaction.output.quantity
+        reaction.inputs.foreach { input =>
+          wanted(input.name) += input.quantity
+        }
+      }
+
+      reaction.inputs.foreach { input =>
+        if (input.name != source) {
+          queue += input.name
+        }
       }
     }
+
+    wanted(source)
   }
 
   def getFactor(wantedQty: Int, producedQty: Int): Int = {
