@@ -22,6 +22,8 @@ object Main extends App {
   val WALL = "#"
   val EMPTY = "."
   val PLAYER = "D"
+  val OXYGEN = "O"
+  val START = "S"
 
   val NORTH = 1
   val SOUTH = 2
@@ -37,22 +39,83 @@ object Main extends App {
 
   case class Pos(x: Int, y: Int)
 
-  val debug = false
-
-  val part1Result = part1("input.txt")
+  val part1Result = part1("maze.txt")
+  assert(part1Result == 424)
   println(s"Part 1: ${part1Result}")
 
-  def part1(program: String): Int = {
+  discover("input.txt")
+
+  def part1(mazeFile: String): Int = {
+    val (maze, start, goal) = readMazeFile(mazeFile)
+    println(start)
+    println(goal)
+    var open = Set[Pos](start)
+    val gscore = mutable.Map[Pos, Int]().withDefaultValue(Int.MaxValue)
+    gscore(start) = 0
+
+    while (open.nonEmpty) {
+      val node = open.minBy { n => gscore(n) + heuristic(n, goal) }
+      open -= node
+      if (node == goal) {
+        println("found it ")
+        return gscore(node)
+      }
+      val neighbours = Set(northOf(node), southOf(node), westOf(node), eastOf(node))
+        .filter { n =>
+          maze.contains(n) && maze(n) != WALL
+        }
+      neighbours.foreach { neighbour =>
+        val tentative = gscore(node) + 1
+        if (tentative < gscore(neighbour)) {
+          gscore(neighbour) = tentative
+          if (!open.contains(neighbour)) {
+            open = open ++ Set(neighbour)
+          }
+        }
+
+      }
+    }
+    -1
+  }
+
+
+  def heuristic(pos: Pos, goal: Pos): Int = {
+    Math.abs(goal.y - pos.y) + Math.abs(goal.x - pos.x)
+  }
+
+  def readMazeFile(mazeFile: String): (mutable.Map[Pos, String], Pos, Pos) = {
+    var y = 0
+    var start = Pos(0,0)
+    var goal = Pos(0,0)
+    val maze = mutable.Map[Pos, String]()
+    Source.fromFile(mazeFile).getLines.foreach { line =>
+      0.until(line.size).foreach { x =>
+        val pos = Pos(x, y)
+        val char = line.charAt(x).toString
+        maze(pos) = char
+        if (char == START) {
+          start = pos
+        } else if (char == OXYGEN) {
+          goal = pos
+        }
+      }
+      y += 1
+    }
+    (maze, start, goal)
+  }
+
+  def discover(program: String): Unit = {
     var state = ComputerState(readFile(program))
 
     var pos = Pos(0, 0)
-    var map = mutable.Map[Pos, String](pos -> EMPTY)
+    var map = mutable.Map[Pos, String](pos -> START)
     var path = mutable.Queue[Int]()
     var prevMove = -1
-    val potential = mutable.Set[Pos]()
+    val potential = mutable.Set[Pos](pos)
     val visited = mutable.Set[Pos]()
+    val familiarity = mutable.Map[Pos, Int]().withDefaultValue(0)
 
-    while (!state.halted) {
+    while (!state.halted && potential.nonEmpty) {
       state = runProgram(state)
       if (state.outputs.nonEmpty) {
         val status = state.outputs.head.toInt
@@ -63,23 +126,15 @@ object Main extends App {
           updateMap(map, visited, potential, pos, prevMove, status)
         }
       }
+      familiarity(pos) = familiarity(pos) + 1
       addToPotential(visited, potential, pos)
       draw(map, pos)
-      val nextMove: Int = getNextMove(map, visited, potential, pos)
-
-      if (debug) {
-        println("player pos: " + pos)
-        println("potential: " + potential)
-        println("visited: " + visited)
-        println("nextmove is: " + strMove(nextMove))
-      }
+      val nextMove: Int = getNextMove(map, visited, potential, familiarity, pos)
 
       state.inputs = List(nextMove)
       prevMove = nextMove
-      Thread.sleep(50)
+      Thread.sleep(100)
     }
-
-    1
   }
 
   def strMove(move: Int): String = {
@@ -176,18 +231,16 @@ object Main extends App {
         }
       }
       case MOVED => map(pos) = EMPTY
-      case FOUND_OXYGEN => println("found it")
+      case FOUND_OXYGEN => map(pos) = OXYGEN
     }
   }
 
-  def getNextMove(map: mutable.Map[Pos, String], visited: mutable.Set[Pos], potential: mutable.Set[Pos], pos: Pos): Int = {
+  def getNextMove(map: mutable.Map[Pos, String], visited: mutable.Set[Pos], potential: mutable.Set[Pos], familiarity: mutable.Map[Pos, Int], pos: Pos): Int = {
     val possible = getPossibleNextPositions(map, pos)
     val nextpos = possible.find { p =>
       potential.contains(p)
     }.orElse {
-      if (debug) { println("choosing next move randomly") }
-      val choice = Random.nextInt(possible.size)
-      Some(possible(choice))
+      Some(possible.minBy { familiarity(_) })
     }.get
     if (nextpos == northOf(pos)) {
       NORTH
