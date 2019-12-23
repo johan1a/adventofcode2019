@@ -43,7 +43,53 @@ object Main extends App {
   assert(part1Result == 424)
   println(s"Part 1: ${part1Result}")
 
+  val part2Result = part2("maze.txt")
+  assert(part2Result == 446)
+  println(s"Part 2: ${part2Result}")
+
   discover("input.txt")
+
+  def part2(mazeFile: String): Int = {
+    var (maze, start, goal) = readMazeFile(mazeFile)
+    maze(start) = EMPTY
+    var nbrMinutes = 0
+    var allOxygen = false
+    do {
+      maze = updateOxygen(maze)
+      allOxygen = isAllOxygen(maze)
+      nbrMinutes += 1
+    } while (!allOxygen)
+    nbrMinutes
+  }
+
+  def isAllOxygen(maze: mutable.Map[Pos, String]): Boolean = {
+    maze.keys.foreach { key =>
+      if(maze(key) == EMPTY) {
+        return false
+      }
+    }
+    return true
+  }
+
+  def updateOxygen(maze: mutable.Map[Pos, String]): mutable.Map[Pos, String] = {
+    val newMaze = mutable.Map[Pos, String]()
+    maze.keys.foreach { pos =>
+      newMaze(pos) = maze(pos)
+    }
+    maze.keys.foreach { pos =>
+      if (maze(pos) == OXYGEN) {
+        newMaze(pos) = OXYGEN
+        val neighbours = Set(northOf(pos), southOf(pos), westOf(pos), eastOf(pos))
+          .filter { n =>
+            maze.contains(n) && maze(n) != WALL
+          }
+        neighbours.foreach { n =>
+          newMaze(n) = OXYGEN
+        }
+      }
+    }
+    newMaze
+  }
 
   def part1(mazeFile: String): Int = {
     val (maze, start, goal) = readMazeFile(mazeFile)
