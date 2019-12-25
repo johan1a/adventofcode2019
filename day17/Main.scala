@@ -29,6 +29,9 @@ object Main extends App {
   val LEFT = '<'
   val RIGHT = '>'
 
+  val INSTRUCTION_RIGHT = 'R'
+  val INSTRUCTION_LEFT = 'L'
+
   val NBR_GROUPS = 3
   val FUNCTION_MAX_LENGTH = 11 // 20 / 2, make room for commas
 
@@ -46,10 +49,9 @@ object Main extends App {
   val part1Result = part1("input.txt")
   println(s"Part 1: ${part1Result}")
 
-  val part2TestResult = part2FromFile("test1.txt")
-
   val part2Result = part2("input.txt")
   println(s"Part 2: ${part2Result}")
+  assert(part2Result == 1415975)
 
   def part1(file: String): Int = {
     var state = ComputerState(readFile(file))
@@ -61,8 +63,8 @@ object Main extends App {
   def part2(file: String): Int = {
     var state = ComputerState(readFile(file))
     state = runProgram(state)
-    val inputs = analyze(state.outputs.map( _.toInt)) ++ List('n', '\n')
-    println(s"input is: $inputs")
+    val inputs = analyze(state.outputs.map( _.toInt))
+
     state = ComputerState(readFile(file))
     state.instructions(0) = 2
     state.outputs = List()
@@ -75,67 +77,30 @@ object Main extends App {
     state.outputs.find ( (n: BigInt) => n > 127 || n < 0).get.toInt
   }
 
-  def part2FromFile(file: String): Unit = {
-    var input = readFileToInts(file)
-    analyze(input)
-  }
-
   def analyze(input: List[Int]): List[Char] = {
     val (map, maxX, maxY) = parse(input)
-    // println(s"maxX: $maxX, maxY: $maxY")
     draw(map, maxX, maxY)
     val path = findPath(map, maxX, maxY)
-    // println(s"path size: ${path.size} ${path.toList}")
-    val inputs = splitGroups(path).map { x =>
-      if ( x == LEFT ) {
-        'L'
-      } else if (x == RIGHT) {
-        'R'
-      } else {
-        x
-      }
-    }
-    println(s"Found inputs: $inputs")
-    inputs
+    val inputs = split(path)
+    inputs ++ List('n', '\n')
   }
 
-  def check(path: Array[Char], mainRoutine: List[Char], groups: List[(Int, Int)]): Unit = {
-    val a = path.drop(groups(0)._1).take(groups(0)._2 - groups(0)._1 + 1)
-    val b = path.drop(groups(1)._1).take(groups(1)._2 - groups(1)._1 + 1)
-    val c = path.drop(groups(2)._1).take(groups(2)._2 - groups(2)._1 + 1)
-
-    val full = mainRoutine.map { m =>
-      m match {
-        case 'A' => a
-        case 'B' => b
-        case 'C' => c
-      }
-    }.flatten
-    println(s"full: $full")
-    println(s"path: ${path.toList}")
-    assert(full sameElements path)
-  }
-
-  def splitGroups(path: Array[Char]): List[Char] = {
+  def split(path: Array[Char]): List[Char] = {
     var groupsLeft = 3
     val end = path.size
     0.until(path.size).foreach { a0 =>
-      println(s"a0: $a0")
       a0.until(Math.min(end, a0 + FUNCTION_MAX_LENGTH)).foreach { a1 =>
         (a1 + 1).until(path.size).foreach { b0 =>
           (b0).until(Math.min(end, b0 + FUNCTION_MAX_LENGTH)).foreach { b1 =>
             (b1 + 1).until(path.size).foreach { c0 =>
               (c0).until(Math.min(end, c0 + FUNCTION_MAX_LENGTH)).foreach { c1 =>
-
                 val groups = List((a0, a1), (b0, b1), (c0, c1))
                 val mainRoutine = place(path, groups)
                 if (mainRoutine.nonEmpty) {
-                  check(path, mainRoutine, groups)
                   val mainWithCommas = (mainRoutine.mkString(",") + "\n").toList
                   val a = makeRoutine(path, a0, a1)
                   val b = makeRoutine(path, b0, b1)
                   val c = makeRoutine(path, c0, c1)
-                  println(s"a: $a (size ${a.size}) b: $b (size ${b.size}) c: $c (size ${c.size})")
                   return (mainWithCommas ++ a) ++ (b ++ c)
                 }
               }
@@ -151,7 +116,14 @@ object Main extends App {
      val length = end - start + 1
      val result = mutable.Queue[Char]()
      start.to(end).foreach { i =>
-       result += path(i)
+       val x = path(i)
+       if ( x == LEFT ) {
+         result += INSTRUCTION_LEFT
+       } else if (x == RIGHT) {
+         result += INSTRUCTION_RIGHT
+       } else {
+         result += x
+       }
        if (i < end) {
          if (Set(LEFT, RIGHT).contains(path(i)) || Set(LEFT, RIGHT).contains(path(i + 1))) {
           result += ','
@@ -160,7 +132,6 @@ object Main extends App {
          result += '\n'
        }
      }
-     // println(s"result.toList ${result.toList}")
      result.toList
   }
 
@@ -202,13 +173,11 @@ object Main extends App {
     var nextDir = ' '
     while (visited.size < nbrScaffoldTiles) {
       nextDir = getNextDir(map, visited, robotPos)
-      //println(s"dir: $robotDir nextDir: $nextDir, path.size: ${path.size}, scaffoldtiles: $nbrScaffoldTiles, vsited.size: ${visited.size} robot pos: $robotPos")
       path ++= turnMoves(robotDir, nextDir)
       robotDir = nextDir
       map(robotPos) = SCAFFOLD
       robotPos = addForwardMoves(map, visited, path, robotPos, robotDir)
       map(robotPos) = robotDir
-      //draw(map, maxX, maxY)
     }
     path.toArray
   }
@@ -426,7 +395,6 @@ object Main extends App {
 
   def input(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
     val a = state.inputs.head
-    println(s"using input: ${a.toInt.toChar}")
     state.inputs = state.inputs.tail
     setVal(state.instructions, state.sp + 1, paramModes.head, relativeBase, a)
     state.sp += nbrSteps(INPUT)
