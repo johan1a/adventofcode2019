@@ -49,6 +49,7 @@ object Main extends App {
   val part2TestResult = part2FromFile("test1.txt")
 
   val part2Result = part2("input.txt")
+  println(s"Part 2: ${part2Result}")
 
   def part1(file: String): Int = {
     var state = ComputerState(readFile(file))
@@ -85,7 +86,15 @@ object Main extends App {
     draw(map, maxX, maxY)
     val path = findPath(map, maxX, maxY)
     // println(s"path size: ${path.size} ${path.toList}")
-    val inputs = splitGroups(path).map( x => if ( x == LEFT ) { 'L' } else if(x == RIGHT) { 'R' } else { x } )
+    val inputs = splitGroups(path).map { x =>
+      if ( x == LEFT ) {
+        'L'
+      } else if (x == RIGHT) {
+        'R'
+      } else {
+        x
+      }
+    }
     println(s"Found inputs: $inputs")
     inputs
   }
@@ -125,7 +134,7 @@ object Main extends App {
                   val mainWithCommas = (mainRoutine.mkString(",") + "\n").toList
                   val a = makeRoutine(path, a0, a1)
                   val b = makeRoutine(path, b0, b1)
-                  val c = makeRoutine(path, b0, b1)
+                  val c = makeRoutine(path, c0, c1)
                   println(s"a: $a (size ${a.size}) b: $b (size ${b.size}) c: $c (size ${c.size})")
                   return (mainWithCommas ++ a) ++ (b ++ c)
                 }
@@ -177,7 +186,7 @@ object Main extends App {
       }
     }
     main.toList
-    if (i >= path.size) {
+    if (i == path.size) {
       main.toList
     } else {
       List()
@@ -327,7 +336,7 @@ object Main extends App {
 
   def prettify(k: Char): String = {
     k match {
-      case SCAFFOLD => s"$WHITE█$RESET"
+      case SCAFFOLD => s"$WHITE#$RESET"
       case '.' => s" "
       case '^' => "⬆"
       case 'v' => "⬇"
@@ -417,7 +426,7 @@ object Main extends App {
 
   def input(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
     val a = state.inputs.head
-    // println(s"using input: ${a.toInt.toChar}")
+    println(s"using input: ${a.toInt.toChar}")
     state.inputs = state.inputs.tail
     setVal(state.instructions, state.sp + 1, paramModes.head, relativeBase, a)
     state.sp += nbrSteps(INPUT)
