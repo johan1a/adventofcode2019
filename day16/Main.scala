@@ -9,9 +9,7 @@ object Main extends App {
   assert(part1Result == "11833188")
   println("Part 1: " + part1Result + ". Took " + (System.currentTimeMillis - start) + " millis.")
 
-  start = System.currentTimeMillis
   val test2Result = part2("test2.txt")
-  println(s"Test 2: $test2Result. Took " + (System.currentTimeMillis - start) + " millis.")
   assert(test2Result == "84462026")
 
   start = System.currentTimeMillis
@@ -24,7 +22,7 @@ object Main extends App {
     var input = baseInput.map ( _.asDigit ).toList.drop(offset)
 
     println(s"starting FFT with input size: ${input.size}. Dropped ${offset} from ${baseInput.size}")
-    val output = runFft2(input.toList, 100)
+    val output = runFft2(input.toArray, 100)
     output.take(8).mkString
   }
 
@@ -43,7 +41,6 @@ object Main extends App {
     var input = originalInput
     var output = input
     while (i < n) {
-      println("iter: " + i)
       output = fft(input)
       input = output
       i += 1
@@ -51,17 +48,16 @@ object Main extends App {
     output
   }
 
-  def runFft2(originalInput: List[Int], n: Int = 100): List[Int] = {
+  def runFft2(originalInput: Array[Int], n: Int = 100): List[Int] = {
     var i = 0
     var input = originalInput
-    var output = input
+    var output: Array[Int] = input
     while (i < n) {
-      println("iter: " + i)
       output = fft2(input)
       input = output
       i += 1
     }
-    output
+    output.toList
   }
 
   def fft(input: List[Int]): List[Int] = {
@@ -79,18 +75,16 @@ object Main extends App {
     res
   }
 
-  def fft2(input: List[Int]): List[Int] = {
+  def fft2(input: Array[Int]): Array[Int] = {
     var sum = 0
-    var q = mutable.Queue[Int]()
+    val arr = Array.fill(input.size)(0)
     var j = input.size - 1
-    println("starting addition")
     while (j >= 0) {
       sum += input(j)
-      q += Math.abs(sum) % 10
+      arr(j) = Math.abs(sum % 10)
       j -= 1
     }
-    println("finished addition")
-    q.reverse.toList
+    arr
   }
 
   def patternVal(i: Int, j: Int, v: Int): Int = {
