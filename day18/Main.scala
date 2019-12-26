@@ -20,10 +20,11 @@ object Main extends App {
 
   assert(part1("test3.txt") == 132)
 
-  println("4")
-  assert(part1("test4.txt") == 136)
+  // assert(part1("test4.txt") == 136) // This one is slow
 
   assert(part1("test5.txt") == 81)
+
+  println("Tests finished. Starting Part 1...")
 
   val start = System.currentTimeMillis
   val part1Result = part1("input.txt")
