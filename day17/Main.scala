@@ -33,7 +33,7 @@ object Main extends App {
   val INSTRUCTION_LEFT = 'L'
 
   val NBR_GROUPS = 3
-  val FUNCTION_MAX_LENGTH = 11 // 20 / 2, make room for commas
+  val FUNCTION_MAX_LENGTH = 10 // 20 / 2, make room for commas
 
   type Map = mutable.Map[Pos, Char]
 
@@ -89,11 +89,11 @@ object Main extends App {
     var groupsLeft = 3
     val end = path.size
     0.until(path.size).foreach { a0 =>
-      a0.until(Math.min(end, a0 + FUNCTION_MAX_LENGTH)).foreach { a1 =>
+      a0.until(Math.min(end, a0 + FUNCTION_MAX_LENGTH + 1)).foreach { a1 =>
         (a1 + 1).until(path.size).foreach { b0 =>
-          (b0).until(Math.min(end, b0 + FUNCTION_MAX_LENGTH)).foreach { b1 =>
+          (b0).until(Math.min(end, b0 + FUNCTION_MAX_LENGTH + 1)).foreach { b1 =>
             (b1 + 1).until(path.size).foreach { c0 =>
-              (c0).until(Math.min(end, c0 + FUNCTION_MAX_LENGTH)).foreach { c1 =>
+              (c0).until(Math.min(end, c0 + FUNCTION_MAX_LENGTH + 1)).foreach { c1 =>
                 val groups = List((a0, a1), (b0, b1), (c0, c1))
                 val mainRoutine = place(path, groups)
                 if (mainRoutine.nonEmpty) {
