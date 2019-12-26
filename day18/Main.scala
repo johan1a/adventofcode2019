@@ -26,9 +26,9 @@ object Main extends App {
 
   println(s"Tests finished in ${elapsed} ms. Starting Part 1...")
   start = System.currentTimeMillis
-  // val part1Result = part1("input.txt")
-  // elapsed = (System.currentTimeMillis - start)
-  // println(s"Part 1: $part1Result (in $elapsed ms)")
+  val part1Result = part1("input.txt")
+  elapsed = (System.currentTimeMillis - start)
+  println(s"Part 1: $part1Result (in $elapsed ms)")
 
   println("Starting Part 2...")
   start = System.currentTimeMillis
