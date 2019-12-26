@@ -35,8 +35,17 @@ object Main extends App {
   val part1Result = part1("input.txt")
   println(s"Part 1: ${part1Result}")
 
-  def part1(file: String): Int = {
+  assert(isPulled("input.txt", Pos(16, 20)))
+  assert(isPulled("input.txt", Pos(17, 20)))
+  assert(squareFits("input.txt", Pos(16, 20), 2))
 
+  println("Starting part 2")
+  val start = System.currentTimeMillis
+  val part2Result = part2("input.txt", 100)
+  val elapsed = System.currentTimeMillis - start
+  println(s"Part 2: ${part2Result} (in $elapsed ms)")
+
+  def part1(file: String): Int = {
     val grid = mutable.Map[Pos, Int]()
     var nbrAffected = 0
     val n = 50
@@ -56,8 +65,55 @@ object Main extends App {
     nbrAffected
   }
 
+  def part2(file: String, width: Int = 100): Int = {
+    val searchStart = Pos(7, 8)
+    val closest = findClosestFitting(file, width, searchStart)
+    closest.x * 10000 + closest.y
+  }
+
+  def findClosestFitting(file: String, width: Int, start: Pos): Pos = {
+    assert(isPulled(file, start))
+    var possible = Set(start)
+
+    var visited = Set[Pos]()
+    var currLine = start.y
+    while (possible.nonEmpty) {
+      val curr = possible.minBy { (pos: Pos) => pos.y }
+      if (curr.y > currLine) {
+        visited = visited.filter { pos => pos.y > currLine }
+        currLine = curr.y
+      }
+      visited = visited + curr
+      possible = possible - curr
+      if (squareFits(file, curr, width)) {
+        return curr
+      }
+      possible = possible ++ neighbours(curr)
+        .filter( n => !visited.contains(n) )
+        .filter( n => isPulled(file, n))
+    }
+    throw new RuntimeException("Found no fitting coord")
+  }
+
+  def squareFits(file: String, pos: Pos, width: Int): Boolean = {
+    val x = pos.x
+    val y = pos.y
+    isPulled(file, Pos(x, y)) &&
+      isPulled(file, Pos(x, y + width - 1)) &&
+      isPulled(file, Pos(x + width - 1, y + width - 1)) &&
+      isPulled(file, Pos(x + width - 1, y))
+  }
+
+  def isPulled(file: String, pos: Pos): Boolean = {
+    var state = ComputerState(readFile(file))
+    state.inputs = List(pos.x, pos.y)
+    state = runProgram(state)
+    val output = state.outputs.head.toInt
+    output == PULLED
+  }
+
   def neighbours(pos: Pos): Set[Pos] = {
-    Set(northOf(pos), southOf(pos), westOf(pos), eastOf(pos))
+    Set(southOf(pos), westOf(pos), eastOf(pos))
   }
 
   def draw(map: Grid, maxX: Int, maxY: Int): Unit = {
