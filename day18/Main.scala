@@ -12,28 +12,54 @@ object Main extends App {
   val WALL = '#'
   val EMPTY = '.'
 
-  println(part1("test1.txt"))
+  val debug = false
 
-  // val part1Result = part1("input.txt")
-  // println(s"Part 1: $part1Result")
+  assert(part1("test1.txt") == 8)
+
+  assert(part1("test2.txt") == 86)
+
+  assert(part1("test3.txt") == 132)
+
+  println("4")
+  assert(part1("test4.txt") == 136)
+
+  assert(part1("test5.txt") == 81)
+
+  val start = System.currentTimeMillis
+  val part1Result = part1("input.txt")
+  val elapsed = (System.currentTimeMillis - start)
+  println(s"Part 1: $part1Result (in $elapsed ms)")
+
+  var cache = mutable.Map[(Pos, Set[Char]), Int]()
 
   def part1(filename: String): Int = {
+    cache = mutable.Map[(Pos, Set[Char]), Int]()
     val (maze, start) = readMazeFile(filename)
     getKeys(maze, start, Set())
   }
 
+  def log(str: String): Unit = {
+    if (debug) {
+      println(str)
+    }
+  }
+
   def getKeys(maze: Maze, start: Pos, keys: Set[Char]): Int = {
+    if (cache.contains((start, keys))) {
+      return cache((start, keys))
+    }
     val reachableKeys = getReachableKeys(maze, start, keys)
-    println(s"reachableKeys: $reachableKeys")
+    log(s"reachableKeys: $reachableKeys")
     if (reachableKeys.isEmpty) {
       return 0
     }
     val distances = reachableKeys.map { pos =>
       val dist = shortestPath(maze, start, pos, keys)
-      println(s"dist: $dist")
       dist + getKeys(maze, pos, keys + maze(pos))
     }
-    distances.min
+    val result = distances.min
+    cache((start, keys)) = result
+    result
   }
 
   def getReachableKeys(maze: Maze, start: Pos, keys: Set[Char]): Set[Pos] = {
