@@ -12,53 +12,52 @@ object Main extends App {
   val WALL = '#'
   val EMPTY = '.'
 
-  val debug = false
-
+  var start = System.currentTimeMillis
   assert(part1("test1.txt") == 8)
-
   assert(part1("test2.txt") == 86)
-
   assert(part1("test3.txt") == 132)
-
   // assert(part1("test4.txt") == 136) // This one is slow
-
   assert(part1("test5.txt") == 81)
+  assert(part1("test6.txt") == 8)
+  assert(part1("test7.txt") == 24)
+  assert(part1("test8.txt") == 32)
+  assert(part1("test9.txt") == 72)
+  var elapsed = (System.currentTimeMillis - start)
 
-  println("Tests finished. Starting Part 1...")
+  println(s"Tests finished in ${elapsed} ms. Starting Part 1...")
+  start = System.currentTimeMillis
+  // val part1Result = part1("input.txt")
+  // elapsed = (System.currentTimeMillis - start)
+  // println(s"Part 1: $part1Result (in $elapsed ms)")
 
-  val start = System.currentTimeMillis
-  val part1Result = part1("input.txt")
-  val elapsed = (System.currentTimeMillis - start)
-  println(s"Part 1: $part1Result (in $elapsed ms)")
+  println("Starting Part 2...")
+  start = System.currentTimeMillis
+  val part2Result = part1("input2.txt")
+  elapsed = (System.currentTimeMillis - start)
+  println(s"Part 2: $part2Result (in $elapsed ms)")
 
-  var cache = mutable.Map[(Pos, Set[Char]), Int]()
-
+  var cache = mutable.Map[(Set[Pos], Set[Char]), Int]()
   var nbrKeys = -1
 
   def part1(filename: String): Int = {
-    cache = mutable.Map[(Pos, Set[Char]), Int]()
-    val (maze, start) = readMazeFile(filename)
-    getKeys(maze, start, Set())
+    cache = mutable.Map[(Set[Pos], Set[Char]), Int]()
+    val (maze, starts) = readMazeFile(filename)
+    getKeys(maze, starts, Set())
   }
 
-  def log(str: String): Unit = {
-    if (debug) {
-      println(str)
+  def getKeys(maze: Maze, starts: Set[Pos], keys: Set[Char]): Int = {
+    if (cache.contains((starts, keys))) {
+      return cache((starts, keys))
     }
-  }
-
-  def getKeys(maze: Maze, start: Pos, keys: Set[Char]): Int = {
-    if (cache.contains((start, keys))) {
-      return cache((start, keys))
-    }
-    val result = getKeysFromPos(maze, start, keys)
-    cache((start, keys)) = result
+    val result = starts.map { pos =>
+      getKeysFromPos(maze, starts, keys, pos)
+    }.min
+    cache((starts, keys)) = result
     result
   }
 
-  def getKeysFromPos(maze: Maze, start: Pos, keys: Set[Char]): Int = {
+  def getKeysFromPos(maze: Maze, positions: Set[Pos], keys: Set[Char], start: Pos): Int = {
     val reachableKeys = getReachableKeys(maze, start, keys)
-    log(s"reachableKeys: $reachableKeys")
     if (reachableKeys.isEmpty) {
       if (keys.size == nbrKeys) {
         return 0
@@ -67,7 +66,8 @@ object Main extends App {
     }
     reachableKeys.map { pos =>
       val dist = shortestPath(maze, start, pos, keys)
-      dist + getKeys(maze, pos, keys + maze(pos))
+      val newPositions = (positions - start) + pos
+      dist + getKeys(maze, newPositions, keys + maze(pos))
     }.min
   }
 
@@ -150,9 +150,9 @@ object Main extends App {
     key.toString.toUpperCase == door.toString
   }
 
-  def readMazeFile(mazeFile: String): (Maze, Pos) = {
+  def readMazeFile(mazeFile: String): (Maze, Set[Pos]) = {
     var y = 0
-    var start = Pos(0,0)
+    var starts = Set[Pos]()
     val maze = mutable.Map[Pos, Char]()
     nbrKeys = 0
     Source.fromFile(mazeFile).getLines.foreach { line =>
@@ -161,14 +161,14 @@ object Main extends App {
         val char = line.charAt(x)
         maze(pos) = char
         if (char == START) {
-          start = pos
+          starts = starts + pos
         } else if (isKey(char)) {
           nbrKeys += 1
         }
       }
       y += 1
     }
-    (maze, start)
+    (maze, starts)
   }
 
 }
