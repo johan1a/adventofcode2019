@@ -33,6 +33,8 @@ object Main extends App {
 
   var cache = mutable.Map[(Pos, Set[Char]), Int]()
 
+  var nbrKeys = -1
+
   def part1(filename: String): Int = {
     cache = mutable.Map[(Pos, Set[Char]), Int]()
     val (maze, start) = readMazeFile(filename)
@@ -49,18 +51,24 @@ object Main extends App {
     if (cache.contains((start, keys))) {
       return cache((start, keys))
     }
+    val result = getKeysFromPos(maze, start, keys)
+    cache((start, keys)) = result
+    result
+  }
+
+  def getKeysFromPos(maze: Maze, start: Pos, keys: Set[Char]): Int = {
     val reachableKeys = getReachableKeys(maze, start, keys)
     log(s"reachableKeys: $reachableKeys")
     if (reachableKeys.isEmpty) {
-      return 0
+      if (keys.size == nbrKeys) {
+        return 0
+      }
+      return Int.MaxValue
     }
-    val distances = reachableKeys.map { pos =>
+    reachableKeys.map { pos =>
       val dist = shortestPath(maze, start, pos, keys)
       dist + getKeys(maze, pos, keys + maze(pos))
-    }
-    val result = distances.min
-    cache((start, keys)) = result
-    result
+    }.min
   }
 
   def getReachableKeys(maze: Maze, start: Pos, keys: Set[Char]): Set[Pos] = {
@@ -146,6 +154,7 @@ object Main extends App {
     var y = 0
     var start = Pos(0,0)
     val maze = mutable.Map[Pos, Char]()
+    nbrKeys = 0
     Source.fromFile(mazeFile).getLines.foreach { line =>
       0.until(line.size).foreach { x =>
         val pos = Pos(x, y)
@@ -153,6 +162,8 @@ object Main extends App {
         maze(pos) = char
         if (char == START) {
           start = pos
+        } else if (isKey(char)) {
+          nbrKeys += 1
         }
       }
       y += 1
