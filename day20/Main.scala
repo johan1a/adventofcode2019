@@ -11,7 +11,13 @@ object Main extends App {
   val WALL = '#'
   val EMPTY = '.'
 
-  println(part1("test1.txt"))
+  assert(part1("test1.txt") == 23)
+
+  assert(part1("test2.txt") == 58)
+
+  val part1Result = part1("input.txt")
+  assert(part1Result == 696)
+  println(s"Part 1: ${part1Result}")
 
   def part1(file: String): Int = {
     val (maze, portals, start, goal) = readMazeFile(file)
@@ -25,21 +31,16 @@ object Main extends App {
 
     while (open.nonEmpty) {
       val curr = open.minBy { n => fScore(n) }
-      println(curr)
       open = open - curr
-      
 
       if (curr == goal) {
         return fScore(goal)
       }
 
-      if(curr == Pos(9,6)){
-        println(getNeighbours(maze, portals, curr))
-
-      }
       getNeighbours(maze, portals, curr).foreach { neighbour =>
 
         val tentative = fScore(curr) + 1
+
         if (tentative < fScore(neighbour)) {
           fScore(neighbour) = tentative
           open = open + neighbour
@@ -88,7 +89,7 @@ object Main extends App {
         } else if (maze.contains(eastOf(pos)) && isLetter(maze(eastOf(pos)))) {
           portalPos = westOf(pos)
           otherLetter = maze(eastOf(pos))
-          portalLetters = s"${otherLetter}${char}"
+          portalLetters = s"${char}${otherLetter}"
         } else if (maze.contains(westOf(pos)) && isLetter(maze(westOf(pos)))) {
           portalPos = eastOf(pos)
           otherLetter = maze(westOf(pos))
@@ -109,7 +110,6 @@ object Main extends App {
         }
       }
     }
-    println(lettersToPos)
     val portalMap = mutable.Map[Pos, Pos]()
     lettersToPos.values.foreach { positions =>
       val a = positions.head
