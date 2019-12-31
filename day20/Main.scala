@@ -1,4 +1,5 @@
 
+import io.AnsiColor._
 import scala.collection.mutable
 import scala.io.Source
 
@@ -6,10 +7,13 @@ object Main extends App {
 
   case class Pos(x: Int, y: Int)
 
+  case class PosLevel(pos: Pos, level: Int)
+
   type Maze = mutable.Map[Pos, Char]
 
   val WALL = '#'
   val EMPTY = '.'
+  val FACE = "@"
 
   assert(part1("test1.txt") == 23)
 
@@ -19,9 +23,77 @@ object Main extends App {
   assert(part1Result == 696)
   println(s"Part 1: ${part1Result}")
 
+  // assert(part2("test1.txt") == 26)
+
+  // assert(part2("test4.txt") == 18)
+  println(part2("test5.txt"))
+
+  // println(part2("test3.txt"))
+
+  // val part2Result = part2("input.txt")
+  // println(s"Part 2: ${part2Result}")
+
   def part1(file: String): Int = {
     val (maze, portals, start, goal) = readMazeFile(file)
     shortestPath(maze, portals, start, goal)
+  }
+
+  def part2(file: String): Int = {
+    val (maze, portals, start, goal) = readMazeFile(file)
+    shortestPath2(maze, portals, start, goal)
+  }
+
+  def shortestPath2(maze: Maze, portals: mutable.Map[Pos, Pos], start: Pos, goal: Pos): Int = {
+
+    val startPs = PosLevel(start, 0)
+    var open = Set[PosLevel](startPs)
+    val fScore = mutable.Map[PosLevel, Int](startPs -> 0).withDefaultValue(Int.MaxValue)
+    val maxX = maze.keys.maxBy( p => p.x ).x
+    val maxY = maze.keys.maxBy( p => p.y ).y
+
+    while (open.nonEmpty) {
+      val curr = open.minBy { n => fScore(n) }
+      open = open - curr
+
+      draw(maze, maxX, maxY, curr)
+      println(s"pos: ${curr.pos} level: ${curr.level}")
+      if (curr.pos == goal && curr.level == 0) {
+        return fScore(curr)
+      }
+
+      getNeighbours(maze, portals, start, goal, curr.level, curr.pos).foreach { neighbour =>
+        val tentative = fScore(curr) + 1
+
+        var level = -1
+        if (!adjacent(curr.pos, neighbour)) {
+          if (atEdge(maxX, maxY, curr.pos)) {
+            level = curr.level - 1
+          } else {
+            level = curr.level + 1
+          }
+        } else {
+          level = curr.level
+        }
+
+        val psNeighbour = PosLevel(neighbour, level)
+        if (tentative < fScore(psNeighbour)) {
+          println(s"Adding neighbour: $psNeighbour")
+          fScore(psNeighbour) = tentative
+          open = open + psNeighbour
+        }
+      }
+      // Thread.sleep(500)
+    }
+
+    throw new RuntimeException("No route found")
+  }
+
+  def atEdge(maxX: Int, maxY: Int, pos: Pos): Boolean = {
+    pos.x == 2 || pos.y == 2 || pos.x == maxX - 2 || pos.y == maxY - 2
+  }
+
+  def adjacent(a: Pos, b: Pos): Boolean = {
+    Math.abs(b.x - a.x) <= 1 && Math.abs(b.y - a.y) <= 1
   }
 
   def shortestPath(maze: Maze, portals: mutable.Map[Pos, Pos], start: Pos, goal: Pos): Int = {
@@ -50,6 +122,26 @@ object Main extends App {
 
     throw new RuntimeException("No route found")
   }
+
+  def draw(maze: Maze, maxX: Int, maxY: Int, curr: PosLevel): Unit = {
+
+    0.to(maxY).foreach { y =>
+      0.to(maxX).foreach { x =>
+        val pos = Pos(x, y)
+        if (pos == curr.pos) {
+          print(s"${RED}${curr.level}${RESET}")
+        } else if (maze.contains(pos)) {
+          print(maze(pos))
+        } else {
+          print(' ')
+        }
+      }
+      println()
+    }
+    println(s"Pos: ${curr.pos} Level: ${curr.level}")
+
+  }
+
 
   def readMazeFile(mazeFile: String): (Maze, mutable.Map[Pos, Pos], Pos, Pos) = {
     var maxX = 0
@@ -99,7 +191,7 @@ object Main extends App {
           otherLetter = maze(southOf(pos))
           portalLetters = s"${char}${otherLetter}"
         }
-        if (maze.contains(portalPos)) {
+        if (maze.contains(portalPos) && maze(portalPos) == EMPTY) {
           if (portalLetters == "AA") {
             start = portalPos
           } else if (portalLetters == "ZZ") {
@@ -122,6 +214,20 @@ object Main extends App {
 
   def isLetter(char: Char): Boolean = {
     char >= 'A' && char <= 'Z'
+  }
+
+  def getNeighbours(maze: Maze, portals: mutable.Map[Pos, Pos], start: Pos, goal: Pos, level: Int, pos: Pos): Set[Pos] = {
+    var realNeighbours: Set[Pos] = Set(northOf(pos), southOf(pos), westOf(pos), eastOf(pos))
+      .filter { n => maze.contains(n) && maze(n) == EMPTY }
+    if (level > 0) {
+      realNeighbours = realNeighbours - start
+      realNeighbours = realNeighbours - goal
+    }
+    if (portals.contains(pos)) {
+      realNeighbours + portals(pos)
+    } else {
+      realNeighbours
+    }
   }
 
   def getNeighbours(maze: Maze, portals: mutable.Map[Pos, Pos], pos: Pos): Set[Pos] = {
