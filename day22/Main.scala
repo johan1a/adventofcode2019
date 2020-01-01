@@ -10,9 +10,73 @@ object Main extends App {
   val part1Result = part1("input.txt")
   println(s"Part 1: ${part1Result}")
 
+  assert(part2("test1.txt", "10", "1", "9") == 3)
+  println(part2("test2.txt", "10", "1", "5") )
+
   def part1(file: String, n: Int = 10007): Int = {
     val sorted = shuffle(file, n)
     sorted.indexOf(2019)
+  }
+
+  def part2(file: String, size: String = "119315717514047", repetitions: String = "101741582076661", originalIndex: String = "2020"): BigInt = {
+    val deckSize: BigInt = BigInt(size)
+    var index = BigInt(originalIndex)
+    var i = BigInt("0")
+    val max = BigInt(repetitions)
+    while (i < max) {
+      index = shuffle2(file, deckSize, index)
+      i += 1
+    }
+    index
+  }
+
+  def shuffle2(filename: String, deckSize: BigInt, originalIndex: BigInt): BigInt = {
+    var index = originalIndex
+    val file = Source.fromFile(filename)
+    val shuffles = file.getLines.toList
+    file.close()
+
+    shuffles.reverse.foreach { line =>
+      if (line.contains("deal into")) {
+        index = dealIntoNewStack2(deckSize, index)
+      } else if (line.contains("deal with")) {
+        index = dealWithIncrement2(deckSize, index, line.replace("deal with increment ", "").toInt)
+      } else if (line.contains("cut")) {
+        index = cut2(deckSize, index, line.replace("cut ", "").toInt)
+      }
+    }
+    index
+  }
+
+  def dealIntoNewStack2(deckSize: BigInt, index: BigInt): BigInt = {
+    deckSize - index
+  }
+
+  def dealWithIncrement2(deckSize: BigInt, index: BigInt, n: Int): BigInt = {
+    var j = BigInt(-1)
+    var i = BigInt(-1)
+    while (j != index) {
+      i += 1
+      j = i * n % deckSize
+    }
+    i
+  }
+
+  def cut2(deckSize: BigInt, index: BigInt, n: Int): BigInt = {
+    if (n > 0) {
+      if (index < deckSize - n) {
+        index + n
+      } else {
+        index - (deckSize - n)
+      }
+    } else {
+      val positiveN = Math.abs(n)
+      if (index < positiveN) {
+        index + (deckSize - positiveN)
+      } else {
+        index - positiveN
+      }
+    }
   }
 
   def shuffle(filename: String, n: Int): Array[Int] = {
