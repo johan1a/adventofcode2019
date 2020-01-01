@@ -18,10 +18,6 @@ object Main extends App {
   val RELATIVE_BASE = 9
   val EXIT = 99
 
-  val MAX_NBR_INSTRUCTIONS = 15
-
-  val INPUT_WALK = List('W', 'A', 'L', 'K', '\n')
-
   type Grid = mutable.Map[Pos, Int]
 
   case class ComputerState(instructions: mutable.Map[BigInt, BigInt],
@@ -35,9 +31,10 @@ object Main extends App {
   case class Pos(x: Int, y: Int)
 
   val part1Result = part1("input.txt")
-
   println(s"Part 1: ${part1Result}")
 
+  val part2Result = part2("input.txt")
+  println(s"Part 2: ${part2Result}")
 
   /**
    *
@@ -52,6 +49,26 @@ object Main extends App {
       "NOT C T\n",
       "AND D T\n",
       "OR T J\n",
+      "WALK\n"
+    ).mkString("")
+    tryInstructions(file, instructions)
+  }
+
+  /**
+   *
+   * if (NOT A) OR ((NOT B) AND C) OR (D AND H and NOT C))
+   */
+  def part2(file: String): Int = {
+    var instructions: String = List(
+      "NOT A T\n",
+      "NOT B J\n",
+      "AND D J\n",
+      "OR T J\n",
+      "NOT C T\n",
+      "AND D T\n",
+      "AND H T\n",
+      "OR T J\n",
+      "RUN\n"
     ).mkString("")
     tryInstructions(file, instructions)
   }
@@ -59,9 +76,7 @@ object Main extends App {
   def tryInstructions(file: String, instructions: String): Int = {
     var state = ComputerState(readFile(file))
     val inputs: List[BigInt] = instructions.toList.map(_.toInt)
-    //    println(inputs.map (_.toChar))
     state.inputs = inputs
-    state.inputs = state.inputs ++ INPUT_WALK.map(_.toInt)
     state = runProgram(state)
     val output = state.outputs.map(_.toChar.toString).mkString("")
     val succeeded = !output.contains("Didn't")
