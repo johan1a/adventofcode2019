@@ -81,16 +81,6 @@ object Main extends App {
     throw new RuntimeException("No route found")
   }
 
-  def shouldUpdateNeigbhour(neighbour: PosLevel, tentative: Int, fScore: mutable.Map[PosLevel, Int]): Boolean = {
-    0.until(neighbour.level).foreach { level =>
-      val lower = PosLevel(neighbour.pos, level)
-      if (fScore.contains(lower)) {
-        return tentative < fScore(lower)
-      }
-    }
-    tentative < fScore(neighbour)
-  }
-
   def getNeighbourLevel(curr: PosLevel, neighbour: Pos, maxX: Int, maxY: Int): Int = {
     if (!adjacent(curr.pos, neighbour)) {
       if (atEdge(maxX, maxY, curr.pos)) {
@@ -137,26 +127,6 @@ object Main extends App {
 
     throw new RuntimeException("No route found")
   }
-
-  def draw(maze: Maze, maxX: Int, maxY: Int, curr: PosLevel): Unit = {
-
-    0.to(maxY).foreach { y =>
-      0.to(maxX).foreach { x =>
-        val pos = Pos(x, y)
-        if (pos == curr.pos) {
-          print(s"${RED}${curr.level}${RESET}")
-        } else if (maze.contains(pos)) {
-          print(maze(pos))
-        } else {
-          print(' ')
-        }
-      }
-      println()
-    }
-    println(s"Pos: ${curr.pos} Level: ${curr.level}")
-
-  }
-
 
   def readMazeFile(mazeFile: String): (Maze, mutable.Map[Pos, Pos], Pos, Pos) = {
     var maxX = 0
