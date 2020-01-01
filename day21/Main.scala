@@ -34,70 +34,29 @@ object Main extends App {
 
   case class Pos(x: Int, y: Int)
 
-  val inputRegisters = List("A", "B", "C", "D")
+  val part1Result = part1("input.txt")
 
-  var n = 0
-
-  println(part1("input.txt"))
+  println(s"Part 1: ${part1Result}")
 
 
   /**
    *
-   * if (NOT A) OR ((NOT B) AND C)
+   * if (NOT A) OR ((NOT B) AND C) OR ((NOT C) AND D)
    */
-
   def part1(file: String): Int = {
     var instructions: String = List(
       "NOT A T\n",
       "NOT B J\n",
       "AND D J\n",
-//      "OR D J\n",
+      "OR T J\n",
+      "NOT C T\n",
+      "AND D T\n",
       "OR T J\n",
     ).mkString("")
-    val output = tryInstructions(file, instructions)
-    0
+    tryInstructions(file, instructions)
   }
 
-  def partx(file: String): Int = {
-    var instructions: Queue[String] = Queue()
-    instructions = instructions ++ makeInstructions()
-
-    println(instructions)
-
-    var seenOutputs = Set[String]()
-
-    while (instructions.nonEmpty) {
-      val (instruction, remaining) = instructions.dequeue
-      instructions = remaining
-      if (n % 100 == 0) {
-        println(s"n: $n, instruction: $instruction")
-      }
-      val output = tryInstructions(file, instruction)
-      if (instruction.count(_ == '\n') < MAX_NBR_INSTRUCTIONS) {
-        if (seenOutputs.contains(output)) {
-          instructions = instructions ++ makeInstructions(instruction)
-        } else {
-          instructions = makeInstructions(instruction) ++: instructions
-        }
-        seenOutputs = seenOutputs + output
-      }
-      n += 1
-    }
-    -1
-  }
-
-  def makeInstructions(instruction: String = ""): List[String] = {
-    Random.shuffle(inputRegisters.map { register =>
-      List(s"${instruction}NOT $register T\n",
-        s"${instruction}NOT $register J\n",
-        s"${instruction}AND $register T\n",
-        s"${instruction}AND $register J\n",
-        s"${instruction}OR $register T\n",
-        s"${instruction}OR $register J\n")
-    }.flatten)
-  }
-
-  def tryInstructions(file: String, instructions: String): String = {
+  def tryInstructions(file: String, instructions: String): Int = {
     var state = ComputerState(readFile(file))
     val inputs: List[BigInt] = instructions.toList.map(_.toInt)
     //    println(inputs.map (_.toChar))
@@ -106,10 +65,12 @@ object Main extends App {
     state = runProgram(state)
     val output = state.outputs.map(_.toChar.toString).mkString("")
     val succeeded = !output.contains("Didn't")
-    if (true || succeeded) {
+    if (succeeded) {
+      state.outputs.map ( _.toInt ).last
+    } else {
       printOutput(state.outputs)
+      0
     }
-    output
   }
 
   def printOutput(output: List[BigInt]): Unit = {
