@@ -2,6 +2,11 @@ import scala.io.Source
 
 object Main extends App {
 
+  case class Shuffle(name: String, n: Int = 0)
+  val DEAL_INTO = "deal into"
+  val DEAL_WITH_INCREMENT = "deal with"
+  val CUT = "cut"
+
   assert(shuffle("test1.txt", 10).toList == List(0, 7, 4, 1, 8, 5, 2, 9, 6, 3))
   assert(shuffle("test2.txt", 10).toList == List(3, 0, 7, 4, 1, 8, 5, 2, 9, 6))
   assert(shuffle("test3.txt", 10).toList == List(6, 3, 0, 7, 4, 1, 8, 5, 2, 9))
@@ -11,7 +16,16 @@ object Main extends App {
   println(s"Part 1: ${part1Result}")
 
   assert(part2("test1.txt", "10", "1", "9") == 3)
-  println(part2("test2.txt", "10", "1", "5") )
+  assert(part2("test5.txt", "10", "1", "6") == 9)
+  assert(part2("test5.txt", "10", "1", "7") == 0)
+  assert(part2("test6.txt", "10", "1", "7") == 9)
+  assert(part2("test7.txt", "10", "1", "4") == 0)
+  assert(part2("test7.txt", "10", "1", "3") == 9)
+  assert(part2("test8.txt", "10", "1", "2") == 7)
+
+  println("!!! Starting Part 2 !!!")
+  val part2Result = part2("input.txt")
+  println(s"Part 2: ${part2Result}")
 
   def part1(file: String, n: Int = 10007): Int = {
     val sorted = shuffle(file, n)
@@ -23,43 +37,61 @@ object Main extends App {
     var index = BigInt(originalIndex)
     var i = BigInt("0")
     val max = BigInt(repetitions)
+
+    val shuffles = readShuffles(file)
+
     while (i < max) {
-      index = shuffle2(file, deckSize, index)
+      if(i % 10000 == 0) {
+        println(i)
+      }
+
+      index = shuffle2(deckSize, index, shuffles)
       i += 1
     }
     index
   }
 
-  def shuffle2(filename: String, deckSize: BigInt, originalIndex: BigInt): BigInt = {
-    var index = originalIndex
+  def readShuffles(filename: String): List[Shuffle] = {
     val file = Source.fromFile(filename)
-    val shuffles = file.getLines.toList
-    file.close()
 
-    shuffles.reverse.foreach { line =>
+    val shuffles = file.getLines.toList.reverse.map { line =>
       if (line.contains("deal into")) {
-        index = dealIntoNewStack2(deckSize, index)
+        Shuffle(DEAL_INTO)
       } else if (line.contains("deal with")) {
-        index = dealWithIncrement2(deckSize, index, line.replace("deal with increment ", "").toInt)
-      } else if (line.contains("cut")) {
-        index = cut2(deckSize, index, line.replace("cut ", "").toInt)
+        Shuffle(DEAL_WITH_INCREMENT, line.replace("deal with increment ", "").toInt)
+      } else {
+        Shuffle(CUT, line.replace("cut ", "").toInt)
+      }
+    }.toList
+    file.close
+    shuffles
+  }
+
+  def shuffle2(deckSize: BigInt, originalIndex: BigInt, shuffles: List[Shuffle]): BigInt = {
+    var index = originalIndex
+
+    shuffles.foreach { shuffle =>
+      if (shuffle.name == DEAL_INTO) {
+        index = dealIntoNewStack2(deckSize, index)
+      } else if (shuffle.name == DEAL_WITH_INCREMENT) {
+        index = dealWithIncrement2(deckSize, index, shuffle.n)
+      } else if (shuffle.name == CUT) {
+        index = cut2(deckSize, index, shuffle.n)
       }
     }
     index
   }
 
   def dealIntoNewStack2(deckSize: BigInt, index: BigInt): BigInt = {
-    deckSize - index
+    deckSize - index - 1
   }
 
   def dealWithIncrement2(deckSize: BigInt, index: BigInt, n: Int): BigInt = {
-    var j = BigInt(-1)
-    var i = BigInt(-1)
-    while (j != index) {
-      i += 1
-      j = i * n % deckSize
+    var k = n - index % n
+    if (k == n) {
+      k = 0
     }
-    i
+    (index  + deckSize * k) / n
   }
 
   def cut2(deckSize: BigInt, index: BigInt, n: Int): BigInt = {
@@ -100,10 +132,9 @@ object Main extends App {
 
   def dealWithIncrement(deck: Array[Int], n: Int): Array[Int] = {
     val newDeck = Array.fill(deck.size)(0)
-    var j = 0
     deck.indices.foreach { i =>
+      val j = i * n % deck.length
       newDeck(j) = deck(i)
-      j = (j + n) % deck.length
     }
     newDeck
   }
