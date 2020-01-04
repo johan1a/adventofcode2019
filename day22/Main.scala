@@ -85,13 +85,13 @@ object Main extends App {
     println(s"a: $a b: $b b2: $b2")
     assert(b == b2)
 
-    //print((pow(A, n, D)*X + (pow(A, n, D)-1) * modinv(A-1, D) * B) % D)
+    //(pow(A, n, D)*X + (pow(A, n, D)-1) * modinv(A-1, D) * B) % D
 
-    // val result = mod(a.modPow(n, deckSize) * x + (a.modPow(n, deckSize) - 1) * modInv(a - 1, deckSize) * b, deckSize)
    val result = if (a == 1) {
-      mod(x + b * n, deckSize)
+    mod(x + b * n, deckSize)
    } else {
-      mod(a.modPow(n, deckSize) * x + (a.modPow(n, deckSize) - 1) / (a - 1) * b, deckSize)
+   //    mod(a.modPow(n, deckSize) * x + (a.modPow(n, deckSize) - 1) / (a - 1) * b, deckSize)
+    mod(a.modPow(n, deckSize) * x + (a.modPow(n, deckSize) - 1) * modInv(a - 1, deckSize) * b, deckSize)
    }
     // val result = mod(a.modPow(n, deckSize) * x + (a.modPow(n, deckSize) - 1) / (a - 1) * b, deckSize)
     println(s"n: $n, x: $x, y: $y, z: $z, a: $a, a2: $a2, b: $b, result: $result")
