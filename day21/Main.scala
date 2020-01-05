@@ -1,4 +1,3 @@
-
 import scala.util.Random
 
 import scala.collection.mutable
@@ -37,9 +36,9 @@ object Main extends App {
   println(s"Part 2: ${part2Result}")
 
   /**
-   *
-   * if (NOT A) OR ((NOT B) AND C) OR ((NOT C) AND D)
-   */
+    *
+    * if (NOT A) OR ((NOT B) AND C) OR ((NOT C) AND D)
+    */
   def part1(file: String): Int = {
     var instructions: String = List(
       "NOT A T\n",
@@ -55,9 +54,9 @@ object Main extends App {
   }
 
   /**
-   *
-   * if (NOT A) OR ((NOT B) AND C) OR (D AND H and NOT C))
-   */
+    *
+    * if (NOT A) OR ((NOT B) AND C) OR (D AND H and NOT C))
+    */
   def part2(file: String): Int = {
     var instructions: String = List(
       "NOT A T\n",
@@ -81,7 +80,7 @@ object Main extends App {
     val output = state.outputs.map(_.toChar.toString).mkString("")
     val succeeded = !output.contains("Didn't")
     if (succeeded) {
-      state.outputs.map ( _.toInt ).last
+      state.outputs.map(_.toInt).last
     } else {
       printOutput(state.outputs)
       0
@@ -104,36 +103,53 @@ object Main extends App {
     m
   }
 
-  def add(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
-    val a = getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
-    val b = getVal(state.instructions, state.sp + 2, paramModes(1), relativeBase)
+  def add(state: ComputerState,
+          paramModes: List[BigInt],
+          relativeBase: BigInt): Unit = {
+    val a =
+      getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
+    val b =
+      getVal(state.instructions, state.sp + 2, paramModes(1), relativeBase)
     setVal(state.instructions, state.sp + 3, paramModes(2), relativeBase, a + b)
     state.sp += nbrSteps(ADD)
   }
 
-  def mul(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
-    val a = getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
-    val b = getVal(state.instructions, state.sp + 2, paramModes(1), relativeBase)
+  def mul(state: ComputerState,
+          paramModes: List[BigInt],
+          relativeBase: BigInt): Unit = {
+    val a =
+      getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
+    val b =
+      getVal(state.instructions, state.sp + 2, paramModes(1), relativeBase)
     setVal(state.instructions, state.sp + 3, paramModes(2), relativeBase, a * b)
     state.sp += nbrSteps(MUL)
   }
 
-  def input(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
+  def input(state: ComputerState,
+            paramModes: List[BigInt],
+            relativeBase: BigInt): Unit = {
     val a = state.inputs.head
     state.inputs = state.inputs.tail
     setVal(state.instructions, state.sp + 1, paramModes.head, relativeBase, a)
     state.sp += nbrSteps(INPUT)
   }
 
-  def output(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
-    val a = getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
+  def output(state: ComputerState,
+             paramModes: List[BigInt],
+             relativeBase: BigInt): Unit = {
+    val a =
+      getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
     state.sp += nbrSteps(OUTPUT)
     state.outputs = state.outputs :+ a
   }
 
-  def jnz(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
-    val a = getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
-    val b = getVal(state.instructions, state.sp + 2, paramModes(1), relativeBase)
+  def jnz(state: ComputerState,
+          paramModes: List[BigInt],
+          relativeBase: BigInt): Unit = {
+    val a =
+      getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
+    val b =
+      getVal(state.instructions, state.sp + 2, paramModes(1), relativeBase)
     if (a != 0) {
       state.sp = b
     } else {
@@ -141,9 +157,13 @@ object Main extends App {
     }
   }
 
-  def jez(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
-    val a = getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
-    val b = getVal(state.instructions, state.sp + 2, paramModes(1), relativeBase)
+  def jez(state: ComputerState,
+          paramModes: List[BigInt],
+          relativeBase: BigInt): Unit = {
+    val a =
+      getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
+    val b =
+      getVal(state.instructions, state.sp + 2, paramModes(1), relativeBase)
     if (a == 0) {
       state.sp = b
     } else {
@@ -151,9 +171,13 @@ object Main extends App {
     }
   }
 
-  def lessThan(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
-    val a = getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
-    val b = getVal(state.instructions, state.sp + 2, paramModes(1), relativeBase)
+  def lessThan(state: ComputerState,
+               paramModes: List[BigInt],
+               relativeBase: BigInt): Unit = {
+    val a =
+      getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
+    val b =
+      getVal(state.instructions, state.sp + 2, paramModes(1), relativeBase)
     if (a < b) {
       setVal(state.instructions, state.sp + 3, paramModes(2), relativeBase, 1)
     } else {
@@ -162,9 +186,13 @@ object Main extends App {
     state.sp += nbrSteps(LESS_THAN)
   }
 
-  def equal(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
-    val a = getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
-    val b = getVal(state.instructions, state.sp + 2, paramModes(1), relativeBase)
+  def equal(state: ComputerState,
+            paramModes: List[BigInt],
+            relativeBase: BigInt): Unit = {
+    val a =
+      getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
+    val b =
+      getVal(state.instructions, state.sp + 2, paramModes(1), relativeBase)
     if (a == b) {
       setVal(state.instructions, state.sp + 3, paramModes(2), relativeBase, 1)
     } else {
@@ -173,12 +201,16 @@ object Main extends App {
     state.sp += nbrSteps(EQUALS)
   }
 
-  def setRelativeBase(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
-    val a = getVal(state.instructions, state.sp + 1, paramModes(0), state.relativeBase)
+  def setRelativeBase(state: ComputerState,
+                      paramModes: List[BigInt],
+                      relativeBase: BigInt): Unit = {
+    val a = getVal(state.instructions,
+                   state.sp + 1,
+                   paramModes(0),
+                   state.relativeBase)
     state.relativeBase += a
     state.sp += nbrSteps(RELATIVE_BASE)
   }
-
 
   def runProgram(state: ComputerState): ComputerState = {
     val program = state.instructions
@@ -197,12 +229,13 @@ object Main extends App {
             input(state, paramModes, state.relativeBase)
           }
         }
-        case OUTPUT => output(state, paramModes, state.relativeBase)
-        case JNZ => jnz(state, paramModes, state.relativeBase)
-        case JEZ => jez(state, paramModes, state.relativeBase)
+        case OUTPUT    => output(state, paramModes, state.relativeBase)
+        case JNZ       => jnz(state, paramModes, state.relativeBase)
+        case JEZ       => jez(state, paramModes, state.relativeBase)
         case LESS_THAN => lessThan(state, paramModes, state.relativeBase)
-        case EQUALS => equal(state, paramModes, state.relativeBase)
-        case RELATIVE_BASE => setRelativeBase(state, paramModes, state.relativeBase)
+        case EQUALS    => equal(state, paramModes, state.relativeBase)
+        case RELATIVE_BASE =>
+          setRelativeBase(state, paramModes, state.relativeBase)
         case EXIT => state.halted = true
         case _ => {
           println("Error: Unsupported opcode: " + opcode)
@@ -214,7 +247,10 @@ object Main extends App {
     state
   }
 
-  def getVal(program: mutable.Map[BigInt, BigInt], i: BigInt, mode: BigInt, relativeBase: BigInt): BigInt = {
+  def getVal(program: mutable.Map[BigInt, BigInt],
+             i: BigInt,
+             mode: BigInt,
+             relativeBase: BigInt): BigInt = {
     var address = BigInt(-1)
     if (mode == 0) {
       address = program(i)
@@ -226,7 +262,11 @@ object Main extends App {
     program(address)
   }
 
-  def setVal(program: mutable.Map[BigInt, BigInt], i: BigInt, mode: BigInt, relativeBase: BigInt, value: BigInt): Unit = {
+  def setVal(program: mutable.Map[BigInt, BigInt],
+             i: BigInt,
+             mode: BigInt,
+             relativeBase: BigInt,
+             value: BigInt): Unit = {
     var address = BigInt(-1)
     if (mode == 0) {
       address = program(i)
@@ -268,4 +308,3 @@ object Main extends App {
     (x % 100).toInt
   }
 }
-
