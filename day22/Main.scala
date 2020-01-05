@@ -44,7 +44,10 @@ object Main extends App {
    *
    * f^n(X) = A^n * X + (A^n - 1) / (A - 1) * B
    **/
-  def part2(file: String, size: String = "119315717514047", repetitions: String = "101741582076661", index: String = "2020"): BigInt = {
+  def part2(file: String,
+            size: String = "119315717514047",
+            repetitions: String = "101741582076661",
+            index: String = "2020"): BigInt = {
 
     val deckSize: BigInt = BigInt(size)
     val n: BigInt = BigInt(repetitions)
@@ -56,12 +59,15 @@ object Main extends App {
     val a = mod((y - z) * modInv(x - y + deckSize, deckSize), deckSize)
     val b = mod(y - a * x, deckSize)
 
-   val result = if (a == 1) {
-    mod(x + b * n, deckSize)
-   } else {
-    // formula from https://www.reddit.com/r/adventofcode/comments/ee0rqi/2019_day_22_solutions/fbnifwk?utm_source=share&utm_medium=web2x
-    mod(a.modPow(n, deckSize) * x + (a.modPow(n, deckSize) - 1) * modInv(a - 1, deckSize) * b, deckSize)
-   }
+    val result = if (a == 1) {
+      mod(x + b * n, deckSize)
+    } else {
+      // formula from https://www.reddit.com/r/adventofcode/comments/ee0rqi/2019_day_22_solutions/fbnifwk?utm_source=share&utm_medium=web2x
+      mod(a.modPow(n, deckSize) * x + (a.modPow(n, deckSize) - 1) * modInv(
+            a - 1,
+            deckSize) * b,
+          deckSize)
+    }
     result
   }
 
@@ -72,7 +78,8 @@ object Main extends App {
       if (line.contains("deal into")) {
         Shuffle(DEAL_INTO)
       } else if (line.contains("deal with")) {
-        Shuffle(DEAL_WITH_INCREMENT, line.replace("deal with increment ", "").toInt)
+        Shuffle(DEAL_WITH_INCREMENT,
+                line.replace("deal with increment ", "").toInt)
       } else {
         Shuffle(CUT, line.replace("cut ", "").toInt)
       }
@@ -81,14 +88,18 @@ object Main extends App {
     shuffles
   }
 
-  def reverseShuffle(deckSize: BigInt, indexAfterShuffle: BigInt, shuffles: List[Shuffle]): BigInt = {
+  def reverseShuffle(deckSize: BigInt,
+                     indexAfterShuffle: BigInt,
+                     shuffles: List[Shuffle]): BigInt = {
     var indexBeforeShuffle = indexAfterShuffle
 
     shuffles.foreach { shuffle =>
       if (shuffle.name == DEAL_INTO) {
-        indexBeforeShuffle = reverseDealIntoNewStack(deckSize, indexBeforeShuffle)
+        indexBeforeShuffle =
+          reverseDealIntoNewStack(deckSize, indexBeforeShuffle)
       } else if (shuffle.name == DEAL_WITH_INCREMENT) {
-        indexBeforeShuffle = reverseDealWithIncrement(deckSize, indexBeforeShuffle, shuffle.n)
+        indexBeforeShuffle =
+          reverseDealWithIncrement(deckSize, indexBeforeShuffle, shuffle.n)
       } else if (shuffle.name == CUT) {
         indexBeforeShuffle = reverseCut(deckSize, indexBeforeShuffle, shuffle.n)
       }
@@ -100,7 +111,9 @@ object Main extends App {
     deckSize - index - 1
   }
 
-  def reverseDealWithIncrement(deckSize: BigInt, index: BigInt, n: Int): BigInt = {
+  def reverseDealWithIncrement(deckSize: BigInt,
+                               index: BigInt,
+                               n: Int): BigInt = {
     mod(modInv(n, deckSize) * index, deckSize)
   }
 
@@ -109,46 +122,45 @@ object Main extends App {
   }
 
   // taken from https://www.geeksforgeeks.org/multiplicative-inverse-under-modulo-m/
-  def modInv(aa: BigInt, mm: BigInt) : BigInt = {
-        var a = aa
-        var m = mm
-        var m0 = m
-        var y = BigInt(0)
-        var x = BigInt(1)
+  def modInv(aa: BigInt, mm: BigInt): BigInt = {
+    var a = aa
+    var m = mm
+    var m0 = m
+    var y = BigInt(0)
+    var x = BigInt(1)
 
-        if (m == 1) {
-            return 0;
-        }
-
-        while (a > 1) {
-            // q is quotient
-            var q = a / m
-
-            var t = m
-
-            // m is remainder now, process
-            // same as Euclid's algo
-            m = mod(a, m)
-            a = t
-            t = y
-
-            // Update x and y
-            y = x - q * y
-            x = t
-        }
-
-        // Make x positive
-        if (x < 0) {
-            x = x + m0
-        }
-
-        return x
+    if (m == 1) {
+      return 0;
     }
+
+    while (a > 1) {
+      // q is quotient
+      var q = a / m
+
+      var t = m
+
+      // m is remainder now, process
+      // same as Euclid's algo
+      m = mod(a, m)
+      a = t
+      t = y
+
+      // Update x and y
+      y = x - q * y
+      x = t
+    }
+
+    // Make x positive
+    if (x < 0) {
+      x = x + m0
+    }
+
+    return x
+  }
 
   def mod(a: BigInt, b: BigInt): BigInt = {
     (a % b + b) % b
   }
-
 
   def shuffle(filename: String, n: Int): Array[Int] = {
     var deck = 0.until(n).toArray
@@ -161,7 +173,8 @@ object Main extends App {
       if (line.contains("deal into")) {
         deck = dealIntoNewStack(deck)
       } else if (line.contains("deal with")) {
-        deck = dealWithIncrement(deck, line.replace("deal with increment ", "").toInt)
+        deck = dealWithIncrement(deck,
+                                 line.replace("deal with increment ", "").toInt)
       } else if (line.contains("cut")) {
         deck = cut(deck, line.replace("cut ", "").toInt)
       }
