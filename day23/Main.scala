@@ -18,6 +18,8 @@ object Main extends App {
   val RELATIVE_BASE = 9
   val EXIT          = 99
 
+  val NAT_ADDRESS = 255
+
   case class ComputerState(instructions: mutable.Map[BigInt, BigInt],
                            var sp: BigInt = 0,
                            var inputs: List[BigInt] = List(),
@@ -33,6 +35,60 @@ object Main extends App {
   case class FinishedException() extends RuntimeException
 
   part1("input.txt")
+
+  part2("input.txt")
+
+  def part2(file: String): Unit = {
+    val computers = mutable.Map[Int, ComputerState]()
+    0.until(49).foreach { i =>
+      val computer = ComputerState(readFile(file))
+      computer.inputs = List(i)
+      computers(i) = computer
+    }
+    val queues = mutable
+      .Map[BigInt, mutable.Queue[Package]]()
+      .withDefaultValue(mutable.Queue())
+    var prevMonitorY = BigInt(-1)
+    var idleCount    = 0
+    while (true) {
+      var idleNetwork = true
+      0.until(49).foreach { i =>
+        val computer    = computers(i)
+        val addedInputs = addPackagesToInput(computer, queues, i)
+        runProgram(computer)
+        val addedPackages = addPackagesToQueue(computer, queues, false)
+
+        if (addedPackages || addedInputs) {
+          idleNetwork = false
+        }
+      }
+
+      if (idleNetwork) {
+        idleCount += 1
+      }
+
+      if (idleCount >= 10000 && queues(NAT_ADDRESS).nonEmpty) {
+        idleCount = 0
+        val monitorPackage = queues(NAT_ADDRESS).last
+        queues(NAT_ADDRESS).clear
+        queues(0) = queues(0) :+ monitorPackage
+
+        if (monitorPackage.y == prevMonitorY) {
+          println(s"Part 2: ${prevMonitorY}")
+          return
+        }
+        prevMonitorY = monitorPackage.y
+      }
+    }
+  }
+
+  def allQueuesEmpty(queues: mutable.Map[BigInt, mutable.Queue[Package]]): Boolean = {
+    queues
+      .filter { entry =>
+        entry._1 != NAT_ADDRESS
+      }
+      .count(_._2.isEmpty) == 0
+  }
 
   def part1(file: String): Unit = {
     val computers = mutable.Map[Int, ComputerState]()
@@ -59,13 +115,16 @@ object Main extends App {
   }
 
   def addPackagesToInput(computer: ComputerState,
-                         queues: mutable.Map[BigInt, mutable.Queue[Package]], i: Int): Unit = {
+                         queues: mutable.Map[BigInt, mutable.Queue[Package]],
+                         i: Int): Boolean = {
     if (queues(i).nonEmpty) {
       val sizeBefore = computer.inputs.size
-      val list = intList(queues(i))
+      val list       = intList(queues(i))
       computer.inputs = computer.inputs ++ intList(queues(i))
-      queues(i) = mutable.Queue()
+      queues(i).clear
+      return true
     }
+    return false
   }
 
   def intList(queue: mutable.Queue[Package]): List[BigInt] = {
@@ -78,15 +137,20 @@ object Main extends App {
   }
 
   def addPackagesToQueue(computerState: ComputerState,
-                            queues: mutable.Map[BigInt, mutable.Queue[Package]]): Unit = {
+                         queues: mutable.Map[BigInt, mutable.Queue[Package]],
+                         partOne: Boolean = true): Boolean = {
+    var addedPackages = false
     while (computerState.outputs.size >= 3) {
       val outputs = computerState.outputs
+      addedPackages = true
 
-      if (outputs.head == 255) {
-        val result = outputs(2)
-        println(s"Part 1: ${result}}")
-        assert(result == 14834)
-        throw new FinishedException()
+      if (outputs.head == NAT_ADDRESS) {
+        if (partOne) {
+          val result = outputs(2)
+          println(s"Part 1: ${result}")
+          assert(result == 14834)
+          throw new FinishedException()
+        }
       }
 
       val pkg     = Package(outputs(1), outputs(2))
@@ -94,6 +158,7 @@ object Main extends App {
       queues(address) = queues(address) :+ pkg
       computerState.outputs = outputs.drop(3)
     }
+    addedPackages
   }
 
   def readFile(filename: String): mutable.Map[BigInt, BigInt] = {
