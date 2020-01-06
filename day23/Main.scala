@@ -7,18 +7,16 @@ import scala.io.Source
 
 object Main extends App {
 
-  val ADD = 1
-  val MUL = 2
-  val INPUT = 3
-  val OUTPUT = 4
-  val JNZ = 5
-  val JEZ = 6
-  val LESS_THAN = 7
-  val EQUALS = 8
+  val ADD           = 1
+  val MUL           = 2
+  val INPUT         = 3
+  val OUTPUT        = 4
+  val JNZ           = 5
+  val JEZ           = 6
+  val LESS_THAN     = 7
+  val EQUALS        = 8
   val RELATIVE_BASE = 9
-  val EXIT = 99
-
-  type Grid = mutable.Map[Pos, Int]
+  val EXIT          = 99
 
   case class ComputerState(instructions: mutable.Map[BigInt, BigInt],
                            var sp: BigInt = 0,
@@ -28,61 +26,78 @@ object Main extends App {
                            var halted: Boolean = false,
                            var nbrExecutedInstructions: Int = 0)
 
-  case class Pos(x: Int, y: Int)
+  case class Pos(x: BigInt, y: BigInt)
 
   case class Package(x: BigInt, y: BigInt)
 
-  case class FinishedException(message: String) extends RuntimeException
+  case class FinishedException() extends RuntimeException
 
-  val part1Result = part1("input.txt")
-  println(s"Part 1: ${part1Result}")
+  part1("input.txt")
 
-  def part1(file: String): String = {
+  def part1(file: String): Unit = {
     val computers = mutable.Map[Int, ComputerState]()
     0.until(49).foreach { i =>
       val computer = ComputerState(readFile(file))
       computer.inputs = List(i)
       computers(i) = computer
     }
-    val queues = mutable.Map[BigInt, mutable.Queue[Package]]().withDefaultValue(mutable.Queue())
+    val queues = mutable
+      .Map[BigInt, mutable.Queue[Package]]()
+      .withDefaultValue(mutable.Queue())
     try {
       while (true) {
         0.until(49).foreach { i =>
-//          println(s"Executing computer: ${i}")
           val computer = computers(i)
-          if (computer.inputs.isEmpty && queues(i).nonEmpty) {
-            println(s"Adding package to computer #${i}")
-            val pkg = queues(i).dequeue()
-            computer.inputs = List(pkg.x, pkg.y)
-          }
+          addPackagesToInput(computer, queues, i)
           runProgram(computer)
-          if (!computer.outputs.isEmpty) {
-            addPackages(computer, queues)
-          }
+          addPackagesToQueue(computer, queues)
         }
       }
     } catch {
-      case (e: FinishedException) => return e.getMessage
+      case (e: FinishedException) =>
     }
-    return "Not found"
   }
 
-  def addPackages(computerState: ComputerState, queues: mutable.Map[BigInt, mutable.Queue[Package]]) {
+  def addPackagesToInput(computer: ComputerState,
+                         queues: mutable.Map[BigInt, mutable.Queue[Package]], i: Int): Unit = {
+    if (queues(i).nonEmpty) {
+      val sizeBefore = computer.inputs.size
+      val list = intList(queues(i))
+      computer.inputs = computer.inputs ++ intList(queues(i))
+      queues(i) = mutable.Queue()
+    }
+  }
+
+  def intList(queue: mutable.Queue[Package]): List[BigInt] = {
+    queue
+      .map { pkg =>
+        List(pkg.x, pkg.y)
+      }
+      .flatten
+      .toList
+  }
+
+  def addPackagesToQueue(computerState: ComputerState,
+                            queues: mutable.Map[BigInt, mutable.Queue[Package]]): Unit = {
     while (computerState.outputs.size >= 3) {
       val outputs = computerState.outputs
+
       if (outputs.head == 255) {
-        throw new FinishedException(outputs(1).toString)
+        val result = outputs(2)
+        println(s"Part 1: ${result}}")
+        assert(result == 14834)
+        throw new FinishedException()
       }
-      val pkg = Package(outputs(1), outputs(2))
+
+      val pkg     = Package(outputs(1), outputs(2))
       val address = outputs(0)
-      queues(address) += pkg
-      println(s"Added package ${pkg} for address: ${address}")
+      queues(address) = queues(address) :+ pkg
       computerState.outputs = outputs.drop(3)
     }
   }
 
   def readFile(filename: String): mutable.Map[BigInt, BigInt] = {
-    val m = mutable.Map[BigInt, BigInt]().withDefaultValue(BigInt(0))
+    val m    = mutable.Map[BigInt, BigInt]().withDefaultValue(BigInt(0))
     val file = Source.fromFile(filename)
     file.getLines.foreach { line =>
       line.split(",").zipWithIndex.foreach { (intAndIndex: (String, Int)) =>
@@ -93,9 +108,7 @@ object Main extends App {
     m
   }
 
-  def add(state: ComputerState,
-          paramModes: List[BigInt],
-          relativeBase: BigInt): Unit = {
+  def add(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
     val a =
       getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
     val b =
@@ -104,9 +117,7 @@ object Main extends App {
     state.sp += nbrSteps(ADD)
   }
 
-  def mul(state: ComputerState,
-          paramModes: List[BigInt],
-          relativeBase: BigInt): Unit = {
+  def mul(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
     val a =
       getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
     val b =
@@ -115,9 +126,7 @@ object Main extends App {
     state.sp += nbrSteps(MUL)
   }
 
-  def input(state: ComputerState,
-            paramModes: List[BigInt],
-            relativeBase: BigInt): Unit = {
+  def input(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
     val a = if (state.inputs.nonEmpty) {
       val input = state.inputs.head
       state.inputs = state.inputs.tail
@@ -129,18 +138,14 @@ object Main extends App {
     state.sp += nbrSteps(INPUT)
   }
 
-  def output(state: ComputerState,
-             paramModes: List[BigInt],
-             relativeBase: BigInt): Unit = {
+  def output(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
     val a =
       getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
     state.sp += nbrSteps(OUTPUT)
     state.outputs = state.outputs :+ a
   }
 
-  def jnz(state: ComputerState,
-          paramModes: List[BigInt],
-          relativeBase: BigInt): Unit = {
+  def jnz(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
     val a =
       getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
     val b =
@@ -152,9 +157,7 @@ object Main extends App {
     }
   }
 
-  def jez(state: ComputerState,
-          paramModes: List[BigInt],
-          relativeBase: BigInt): Unit = {
+  def jez(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
     val a =
       getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
     val b =
@@ -166,9 +169,7 @@ object Main extends App {
     }
   }
 
-  def lessThan(state: ComputerState,
-               paramModes: List[BigInt],
-               relativeBase: BigInt): Unit = {
+  def lessThan(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
     val a =
       getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
     val b =
@@ -181,9 +182,7 @@ object Main extends App {
     state.sp += nbrSteps(LESS_THAN)
   }
 
-  def equal(state: ComputerState,
-            paramModes: List[BigInt],
-            relativeBase: BigInt): Unit = {
+  def equal(state: ComputerState, paramModes: List[BigInt], relativeBase: BigInt): Unit = {
     val a =
       getVal(state.instructions, state.sp + 1, paramModes(0), relativeBase)
     val b =
@@ -199,18 +198,15 @@ object Main extends App {
   def setRelativeBase(state: ComputerState,
                       paramModes: List[BigInt],
                       relativeBase: BigInt): Unit = {
-    val a = getVal(state.instructions,
-      state.sp + 1,
-      paramModes(0),
-      state.relativeBase)
+    val a = getVal(state.instructions, state.sp + 1, paramModes(0), state.relativeBase)
     state.relativeBase += a
     state.sp += nbrSteps(RELATIVE_BASE)
   }
 
   def runProgram(state: ComputerState): ComputerState = {
-    val program = state.instructions
+    val program     = state.instructions
     var opcode: Int = -1
-    var suspended = false
+    var suspended   = false
     while (opcode != EXIT && !suspended) {
       opcode = getOpcode(program(state.sp))
       val paramModes: List[BigInt] = getParamModes(opcode, program(state.sp))
@@ -220,11 +216,11 @@ object Main extends App {
         case INPUT => {
           input(state, paramModes, state.relativeBase)
         }
-        case OUTPUT => output(state, paramModes, state.relativeBase)
-        case JNZ => jnz(state, paramModes, state.relativeBase)
-        case JEZ => jez(state, paramModes, state.relativeBase)
+        case OUTPUT    => output(state, paramModes, state.relativeBase)
+        case JNZ       => jnz(state, paramModes, state.relativeBase)
+        case JEZ       => jez(state, paramModes, state.relativeBase)
         case LESS_THAN => lessThan(state, paramModes, state.relativeBase)
-        case EQUALS => equal(state, paramModes, state.relativeBase)
+        case EQUALS    => equal(state, paramModes, state.relativeBase)
         case RELATIVE_BASE =>
           setRelativeBase(state, paramModes, state.relativeBase)
         case EXIT => state.halted = true
@@ -271,9 +267,9 @@ object Main extends App {
   }
 
   def getParamModes(opcode: BigInt, instruction: BigInt): List[BigInt] = {
-    var digits = instruction / 100 // remove opcode
+    var digits          = instruction / 100 // remove opcode
     var paramsLeft: Int = nbrSteps(opcode).toInt - 1
-    var modes = List[BigInt]()
+    var modes           = List[BigInt]()
     while (digits > 0) {
       modes = modes :+ (digits % 10)
       digits /= 10
@@ -287,12 +283,12 @@ object Main extends App {
 
   def nbrSteps(opcode: BigInt): BigInt = {
     opcode.intValue match {
-      case INPUT => BigInt(2)
-      case OUTPUT => BigInt(2)
-      case JNZ => BigInt(3)
-      case JEZ => BigInt(3)
+      case INPUT         => BigInt(2)
+      case OUTPUT        => BigInt(2)
+      case JNZ           => BigInt(3)
+      case JEZ           => BigInt(3)
       case RELATIVE_BASE => BigInt(2)
-      case _ => BigInt(4)
+      case _             => BigInt(4)
     }
   }
 
