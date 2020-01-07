@@ -1,26 +1,41 @@
-
 import scala.io.Source
 
 object Main extends App {
 
-  val BUG = '#'
+  val BUG   = '#'
   val EMPTY = '.'
 
   type Layout = Array[Array[Char]]
 
-  println(part1("input.txt"))
+  assert(calculateRating(readFile("test1.txt")) == 2129920)
+
+  var state = updateLayout(readFile("test2.txt"))
+  assert(equalArrays(state, readFile("test3.txt")))
+  state = updateLayout(state)
+  assert(equalArrays(state, readFile("test4.txt")))
+  state = updateLayout(state)
+  assert(equalArrays(state, readFile("test5.txt")))
+  state = updateLayout(state)
+  assert(equalArrays(state, readFile("test6.txt")))
+
+  assert(part1("test2.txt") == 2129920)
+
+  val part1Result = part1("input.txt")
+  assert(part1Result == 7543003)
+  println(s"Part1: $part1Result")
 
   def part1(file: String): BigInt = {
     var layout: Layout = readFile(file)
-    var prevLayout = layout
+    var seen = Set[String]()
     do {
-      prevLayout = layout
-      layout = updateLayout(prevLayout)
-      if (true) {
+      seen = seen + layout.map( _.mkString("")).mkString("")
+      layout = updateLayout(layout)
+      if (false) {
         draw(layout)
-        Thread.sleep(300)
+        Thread.sleep(100)
       }
-    } while (!(equalArrays(layout, prevLayout)))
+    } while (!seen.contains(layout.map( _.mkString("")).mkString("")
+))
     calculateRating(layout)
   }
 
@@ -50,37 +65,49 @@ object Main extends App {
       line.map { line =>
         x += 1
         val nbrAdjacent = nbrAdjacentBugs(layout, x, y)
-        if (layout(y)(x) == BUG && nbrAdjacent == 1) {
-          EMPTY
+        if (layout(y)(x) == BUG) {
+          if(nbrAdjacent != 1){
+            EMPTY
+          } else {
+            BUG
+          }
         } else if (layout(y)(x) == EMPTY && nbrAdjacent == 1 || nbrAdjacent == 2) {
           BUG
         } else {
-          layout(y)(x)
+          EMPTY
         }
       }.toArray
     }.toArray
   }
 
   def nbrAdjacentBugs(layout: Layout, x: Int, y: Int): Int = {
-    val res = (y - 1).to(y + 1).map { y2 =>
-      (x - 1).to(x + 1).map { x2 =>
-        if (y2 != y && x2 != x2 && y2 >= 0 && x2 >= 0 && y2 < layout.size && x2 < layout(0).size) {
-          if (layout(y)(x) == BUG) {
-            1
-          } else {
-            0
-          }
+    List[(Int, Int)]((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)).map { coord =>
+      val x2 = coord._1
+      val y2 = coord._2
+      if (y2 >= 0 && x2 >= 0 && y2 < layout.size && x2 < layout(0).size) {
+        if (layout(y2)(x2) == BUG) {
+          1
         } else {
           0
         }
-      }.sum
+      } else {
+        0
+      }
     }.sum
-    println(res)
-    res
   }
 
   def calculateRating(layout: Layout): BigInt = {
-    BigInt(-1)
+    var points = BigInt(1)
+    var sum    = BigInt(0)
+    layout.foreach { line =>
+      line.foreach { elem =>
+        if (elem == BUG) {
+          sum += points
+        }
+        points = points * 2
+      }
+    }
+    sum
   }
 
   def readFile(file: String): Layout = {
