@@ -26,7 +26,7 @@ object Main extends App {
 
   val part1Result = part1("input.txt")
   assert(part1Result == 7543003)
-  println(s"Part1: $part1Result")
+  println(s"Part 1: $part1Result")
 
   val test6Level = readFile("test6.txt")
   val test7Level = readFile("test7.txt")
@@ -35,16 +35,17 @@ object Main extends App {
 
   assert(nbrAdjacentBugs(test6Level, test7Level, test7Level, 1, 2) == 5)
 
-  draw(updateLevels(mutable.Map(0 -> readFile("input.txt")), 0, 0)._1)
+  // draw(updateLevels(mutable.Map(0 -> readFile("input.txt")), 0, 0)._1)
 
-  // println(part2("input.txt"))
+  val part2Result = part2("input.txt")
+  assert(part2Result == 1975)
+  println(s"Part 2: $part2Result")
 
   def part2(file: String): BigInt = {
     var levels: Levels = mutable.Map(0 -> readFile(file))
     var minLevel       = 0
     var maxLevel       = 0
     0.until(200).foreach { i =>
-      draw(levels)
       val (levels2, minLevel2, maxLevel2) = updateLevels(levels, minLevel, maxLevel)
       levels = levels2
       minLevel = minLevel2
@@ -59,37 +60,40 @@ object Main extends App {
 
   def draw(levels: Levels): Unit = {
     levels.foreach { level =>
-    print(s"Level: ${level._1}")
+      print(s"Level: ${level._1}")
       draw(level._2)
     }
   }
 
   def updateLevels(levels: Levels, minLevel: Int, maxLevel: Int): (Levels, Int, Int) = {
-    var newMinLevel = Int.MaxValue
+    var newMinLevel       = Int.MaxValue
     var lastLevelWithBugs = minLevel
-    val newLevels = mutable.Map[Int, Layout]()
+    val newLevels         = mutable.Map[Int, Layout]()
 
     var lastLevel = lastLevelWithBugs
 
     (minLevel - 1).to(maxLevel + 1).map { level =>
       var containsBugs = false
-      val layout       = if (levels.contains(level)){
+      val layout = if (levels.contains(level)) {
         levels(level)
       } else {
         emptyLevel()
       }
-      val outerLevel = if (levels.contains(level - 1)){
+      val outerLevel = if (levels.contains(level - 1)) {
         levels(level - 1)
       } else {
         emptyLevel()
       }
-      val innerLevel = if (levels.contains(level + 1)){
+      val innerLevel = if (levels.contains(level + 1)) {
         levels(level + 1)
       } else {
         emptyLevel()
       }
-      val newLevel = 0.until(width).map { y =>
-          0.until(width).map { x =>
+      val newLevel = 0
+        .until(width)
+        .map { y =>
+          0.until(width)
+            .map { x =>
               val nbrAdjacent = nbrAdjacentBugs(layout, outerLevel, innerLevel, x, y)
               // println(s"level: $level x: $x y: $y nbrAdjacent: $nbrAdjacent")
               // draw(layout)
@@ -106,8 +110,10 @@ object Main extends App {
               } else {
                 EMPTY
               }
-            }.toArray
-        }.toArray
+            }
+            .toArray
+        }
+        .toArray
       if (containsBugs) {
         if (level < newMinLevel) {
           newMinLevel = level
@@ -115,9 +121,9 @@ object Main extends App {
         lastLevelWithBugs = level
       }
       lastLevel = lastLevel + 1
-       println(s"newMinLevel: $newMinLevel, lastLevelWithBugs: $lastLevelWithBugs level: $level")
-      if(level >= newMinLevel){
-        println("Adding level")
+      // println(s"newMinLevel: $newMinLevel, lastLevelWithBugs: $lastLevelWithBugs level: $level")
+      if (level >= newMinLevel) {
+        // println("Adding level")
         newLevels(level) = newLevel
       }
     }
@@ -136,7 +142,11 @@ object Main extends App {
   }
 
   // Yikes!
-  def nbrAdjacentBugs(layout: Layout, outerLevel: Layout, innerLevel: Layout, x: Int, y: Int): Int = {
+  def nbrAdjacentBugs(layout: Layout,
+                      outerLevel: Layout,
+                      innerLevel: Layout,
+                      x: Int,
+                      y: Int): Int = {
     var sum = 0
     if (x == 0) {
       if (y == 0) {
