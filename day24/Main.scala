@@ -28,6 +28,10 @@ object Main extends App {
   assert(part1Result == 7543003)
   println(s"Part1: $part1Result")
 
+  val test7Level = readFile("test7.txt")
+  val testLevels = mutable.Map(0 -> test7Level, 1 -> test7Level)
+  assert(countBugs(testLevels) == 24)
+
   def part2(file: String): BigInt = {
     var levels: Levels = mutable.Map(0 -> readFile(file))
     var seen           = Set[String]()
