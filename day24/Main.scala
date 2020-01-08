@@ -95,8 +95,6 @@ object Main extends App {
           0.until(width)
             .map { x =>
               val nbrAdjacent = nbrAdjacentBugs(layout, outerLevel, innerLevel, x, y)
-              // println(s"level: $level x: $x y: $y nbrAdjacent: $nbrAdjacent")
-              // draw(layout)
               if (layout(y)(x) == BUG) {
                 if (nbrAdjacent != 1) {
                   EMPTY
@@ -121,9 +119,7 @@ object Main extends App {
         lastLevelWithBugs = level
       }
       lastLevel = lastLevel + 1
-      // println(s"newMinLevel: $newMinLevel, lastLevelWithBugs: $lastLevelWithBugs level: $level")
       if (level >= newMinLevel) {
-        // println("Adding level")
         newLevels(level) = newLevel
       }
     }
