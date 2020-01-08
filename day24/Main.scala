@@ -28,22 +28,28 @@ object Main extends App {
   assert(part1Result == 7543003)
   println(s"Part1: $part1Result")
 
+  val test6Level = readFile("test6.txt")
   val test7Level = readFile("test7.txt")
-  val testLevels = mutable.Map(0 -> test7Level, 1 -> test7Level)
-  assert(countBugs(testLevels) == 24)
+  val testLevels = mutable.Map(-1 -> test7Level, 0 -> test6Level, 1 -> test7Level)
+  assert(countBugs(testLevels) == 34)
+
+  assert(nbrAdjacentBugs(test6Level, test7Level, test7Level, 1, 2) == 5)
+
+  draw(updateLevels(mutable.Map(0 -> readFile("input.txt")), 0, 0)._1)
+
+  // println(part2("input.txt"))
 
   def part2(file: String): BigInt = {
     var levels: Levels = mutable.Map(0 -> readFile(file))
-    var seen           = Set[String]()
     var minLevel       = 0
     var maxLevel       = 0
-    do {
-      seen = seen + makeString(levels)
+    0.until(200).foreach { i =>
+      draw(levels)
       val (levels2, minLevel2, maxLevel2) = updateLevels(levels, minLevel, maxLevel)
       levels = levels2
       minLevel = minLevel2
       maxLevel = maxLevel2
-    } while (!seen.contains(makeString(levels)))
+    }
     countBugs(levels)
   }
 
@@ -51,27 +57,42 @@ object Main extends App {
     Array.fill(width)(Array.fill(width)(EMPTY))
   }
 
+  def draw(levels: Levels): Unit = {
+    levels.foreach { level =>
+    print(s"Level: ${level._1}")
+      draw(level._2)
+    }
+  }
+
   def updateLevels(levels: Levels, minLevel: Int, maxLevel: Int): (Levels, Int, Int) = {
-    var newMinLevel = Int.MinValue
-    var newMaxLevel = minLevel
+    var newMinLevel = Int.MaxValue
+    var lastLevelWithBugs = minLevel
     val newLevels = mutable.Map[Int, Layout]()
+
+    var lastLevel = lastLevelWithBugs
 
     (minLevel - 1).to(maxLevel + 1).map { level =>
       var containsBugs = false
-      val layout       = levels(level)
-      val outerLevel = if (level == minLevel) {
-        emptyLevel()
+      val layout       = if (levels.contains(level)){
+        levels(level)
       } else {
-        levels(level - 1)
+        emptyLevel()
       }
-      val innerLevel = if (level == maxLevel) {
-        emptyLevel()
+      val outerLevel = if (levels.contains(level - 1)){
+        levels(level - 1)
       } else {
+        emptyLevel()
+      }
+      val innerLevel = if (levels.contains(level + 1)){
         levels(level + 1)
+      } else {
+        emptyLevel()
       }
       val newLevel = 0.until(width).map { y =>
           0.until(width).map { x =>
               val nbrAdjacent = nbrAdjacentBugs(layout, outerLevel, innerLevel, x, y)
+              // println(s"level: $level x: $x y: $y nbrAdjacent: $nbrAdjacent")
+              // draw(layout)
               if (layout(y)(x) == BUG) {
                 if (nbrAdjacent != 1) {
                   EMPTY
@@ -88,16 +109,22 @@ object Main extends App {
             }.toArray
         }.toArray
       if (containsBugs) {
-        if (minLevel == Long.MinValue) {
+        if (level < newMinLevel) {
           newMinLevel = level
         }
-        newMaxLevel = level
+        lastLevelWithBugs = level
       }
-      if(level >= newMinLevel && level <= newMaxLevel){
+      lastLevel = lastLevel + 1
+       println(s"newMinLevel: $newMinLevel, lastLevelWithBugs: $lastLevelWithBugs level: $level")
+      if(level >= newMinLevel){
+        println("Adding level")
         newLevels(level) = newLevel
       }
     }
-    (newLevels, newMinLevel, newMaxLevel)
+    (lastLevelWithBugs + 1).to(lastLevel).foreach { i =>
+      newLevels.remove(i)
+    }
+    (newLevels, newMinLevel, lastLevelWithBugs)
   }
 
   def countBug(layout: Layout, x: Int, y: Int): Int = {
@@ -124,7 +151,7 @@ object Main extends App {
         sum += countBug(outerLevel, 1, 2)
       } else if (y == width - 1) {
         sum += countBug(layout, x + 1, y)
-        sum += countBug(layout, x, y + 1)
+        sum += countBug(layout, x, y - 1)
         sum += countBug(outerLevel, 1, 2)
         sum += countBug(outerLevel, 2, 3)
       } else {
@@ -198,7 +225,7 @@ object Main extends App {
         sum += countBug(layout, x, y - 1)
         sum += countBug(layout, x, y + 1)
       } else if (y == 2) {
-        sum += countBug(layout, x - 1, y)
+        sum += countBug(layout, x + 1, y)
         sum += countBug(layout, x, y - 1)
         sum += countBug(layout, x, y + 1)
         0.until(width).foreach { y =>
@@ -218,7 +245,7 @@ object Main extends App {
         sum += countBug(layout, x, y + 1)
         sum += countBug(outerLevel, 2, 1)
         sum += countBug(outerLevel, 3, 2)
-      } else if (y == 1 && x <= 3) {
+      } else if (y >= 1 && y <= 3) {
         sum += countBug(layout, x - 1, y)
         sum += countBug(layout, x, y + 1)
         sum += countBug(layout, x, y - 1)
@@ -229,7 +256,7 @@ object Main extends App {
         sum += countBug(outerLevel, 3, 2)
         sum += countBug(outerLevel, 2, 3)
       } else {
-        throw new RuntimeException("ERROR")
+        throw new RuntimeException(s"ERROR x: $x y: $y")
       }
     }
     sum
@@ -242,18 +269,6 @@ object Main extends App {
         line.count(_ == BUG)
       }.sum
     }.sum
-  }
-
-  def makeString(levels: Levels): String = {
-    levels.map { entry =>
-        val layout = entry._2
-        layout
-          .map { line =>
-            line.mkString("")
-          }
-          .mkString("")
-      }
-      .mkString("")
   }
 
   def part1(file: String): BigInt = {
