@@ -28,12 +28,11 @@ object Main extends App {
 
   case class Pos(x: BigInt, y: BigInt)
 
-  val INPUT_FILE = "input.txt"
+  val INPUT_FILE  = "input.txt"
+  var names       = mutable.Map[(Int, Int), String]()
+  var interactive = false
 
   part1("input.txt")
-
-  var names       = mutable.Map[(Int, Int), String]()
-  var interactive = true
 
   def part1(file: String): Unit = {
     names = mutable.Map[(Int, Int), String]()
@@ -68,14 +67,16 @@ object Main extends App {
               y: Int = 0,
               history: Queue[Record] = Queue(),
               inventory: Set[String] = Set(),
-              seen: Set[Queue[Record]] = Set(),
+              seen: Set[(String, Set[String])] = Set(),
               residualCommands: Set[String] = Set()): Unit = {
 
-    if (seen.contains(history)) {
-      println(s"I've been here before... Bailing! Inventory: $inventory")
+    if (seen.contains((place, inventory))) {
+      // println(s"I've been here before... Bailing! Inventory: $inventory")
       return
     }
-    val newSeen = seen + history
+    val state: (String, Set[String]) = (place, inventory)
+    val newSeen                      = seen + state
+    println(newSeen)
 
     val (output, fullOutput) = runCommands(history)
 
@@ -83,10 +84,15 @@ object Main extends App {
       println()
     }
 
+    if (output.contains("Security Checkpoint")) {
+      println("Jesus take the wheel!")
+      interactive = true
+    }
+
     var x2 = x
     var y2 = y
     if (history.nonEmpty) {
-      if (output.contains("can't do")) {
+      if (output.contains("can't do") || output.contains("ejected back to the checkpoint")) {
         println(s"history: $history")
         interactive = true
       } else {
@@ -103,9 +109,10 @@ object Main extends App {
 
     var name = place
     if (output.contains("==")) {
-      name = output.split("==")(1).trim
+      val outputSplit = output.split("==")
+      name = outputSplit(outputSplit.size - 2).trim
       if (names.contains((x2, y2))) {
-        if (name != names((x2, y2))) {
+        if (false && name != names((x2, y2))) {
           println("--- Full output ---")
           println(fullOutput)
           println("--- End full output ---")
@@ -130,6 +137,10 @@ object Main extends App {
     allCommands = (takeCommands ++ moveCommands ++ residualCommands).toSet
 
     if (interactive) {
+      println(s"interactive is: $interactive")
+      println("--- Full output ---")
+      println(fullOutput)
+      println("--- End full output ---")
       println(s"You are now at: $name, (x: $x2 y: $y2) with inv: ${inventory} \n")
       println("Possible cmds: " + allCommands + "\n")
       val input = readLine
@@ -206,13 +217,15 @@ object Main extends App {
   }
 
   def getTakeCommands(output: String): List[String] = {
+    val forbidden = Set("infinite loop")
     if (!output.contains("Items")) {
       List()
     } else {
       val splitted0 = output.split("Items here:")(1)
       val splitted1 = splitted0.split("Command?")(0)
       val rep       = splitted1.replaceAll("- ", "")
-      rep.split('\n').filter(s => !s.isBlank).map { "take " + _ }.toList
+      val items     = rep.split('\n').filter(s => !s.isBlank)
+      items.filter(!forbidden.contains(_)).map { "take " + _ }.toList
     }
   }
 
@@ -220,7 +233,8 @@ object Main extends App {
     if (!output.contains("Doors")) {
       List()
     } else {
-      val splitted0 = output.split("Doors here lead:")(1)
+      val doorSplit = output.split("Doors here lead:")
+      val splitted0 = doorSplit(doorSplit.size - 1)
       val splitted1 = if (splitted0.contains("Items")) {
         splitted0.split("Items?")(0)
       } else {
