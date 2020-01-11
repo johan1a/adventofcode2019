@@ -1,0 +1,35 @@
+
+
+
+(-3,-1): Pressure-Sensitive Floor
+(-3,0): Security Checkpoint
+(-3,1): Storage
+(-2,0): Hot Chocolate Fountain
+(-2,1): Kitchen
+(-1,-1): Crew Quarters
+(-1,0): Science Lab
+(-1,1): Warp Drive Maintenance
+(0,-2): Stables
+(0,-1): Passages
+(0,0): Hull Breach
+(0,1): Holodeck / Arcade history
+(0,2): Observatory
+(1,0): Gift Wrapping Center
+(1,1): Sick Bay
+(1,2): Engineering
+(2,1): Corridor
+(2,2): Navigation
+(2,3): Hallway
+
+inventory: Set(dark matter, hypercube, tambourine, coin)
+
+                                                                                         - Hallway
+                                                                          2 Observatory  -  Engineering           - Navigation
+                                                                          1 Holo deck    -  Sick bay              - Corridor
+Security Checkpoint             Hot Chocolate Fountain   Science lab      0 Hull breach  -  Gift Wrapping Center
+Pressure-Sensitive Floor                                 Crew Quarters   -1 Passages
+                                                                         -2 Stables
+                                                                         -3
+                                                                         -4
+            -3                  -2                       -1               0
+

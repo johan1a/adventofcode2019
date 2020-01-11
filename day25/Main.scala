@@ -31,41 +31,26 @@ object Main extends App {
   case class Pos(x: BigInt, y: BigInt)
 
   val INPUT_FILE                       = "input.txt"
-  var names                            = mutable.Map[(Int, Int), String]()
-  var interactive                      = false
   var seen: Set[(String, Set[String])] = Set()
   var triedInventories                 = Set[Set[String]]()
+  val debug                            = false
 
+  class CompletedException extends RuntimeException {}
+
+  val start = System.currentTimeMillis
   part1("input.txt")
+  val elapsed = (System.currentTimeMillis - start)
+  println(s"$elapsed ms elapsed")
 
   def part1(file: String): Unit = {
     println("Starting Part 1")
-    names = mutable.Map[(Int, Int), String]()
     seen = Set()
-    execute()
+    try {
+      execute()
+    } catch {
+      case e: CompletedException => // no-op
+    }
   }
-
-  /*
-                 *                                                                - Hallway
-                                          2 Observatory  -  Engineering           - Navigation
-                                          1 Holo deck    -  Sick bay              - Corridor
-Hot Chocolate Fountain   Science lab      0 Hull breach  -  Gift Wrapping Center
-                         Crew Quarters   -1 Passages
-                                         -2 Stables
-                                         -3
-                                         -4
--2                      -1                0
-
-
-  history: Stack(Hull Breach: north
-, Passages: north
-, Stables: north
-, Stables: take hypercube
-, Passages: south
-, Hull Breach: south
-, Hull Breach: south
-
-   */
 
   case class Record(place: String, command: String, pos: (Int, Int))
 
@@ -76,59 +61,13 @@ Hot Chocolate Fountain   Science lab      0 Hull breach  -  Gift Wrapping Center
               inventory: Set[String] = Set()): Unit = {
 
     val (output, fullOutput) = runCommands(history)
+    val (x2, y2)             = updatePos(x, y, output, history)
+    val newPlace             = getNewPlace(output, place)
 
-    0.until(5).foreach { i =>
-      println()
-    }
-
-    if (output.contains("Security")) {
-      println(fullOutput)
-      // interactive = true
-      readLine
-      // println("Jesus take the wheel!")
-    }
-
-    var x2 = x
-    var y2 = y
-    if (history.nonEmpty) {
-      if (!output.contains("can't do") && !output.contains("ejected back to the checkpoint")) {
-        val prevCommand = history.last.command
-        prevCommand match {
-          case "north" => {
-            y2 += 1
-          }
-          case "west" => {
-            x2 -= 1
-          }
-          case "east" => {
-            x2 += 1
-
-          }
-          case "south" => {
-            y2 -= 1
-          }
-          case _ =>
-        }
-      }
-    }
-
-    var newPlace = place
-    if (output.contains("==")) {
-      val outputSplit = output.split("==")
-      newPlace = outputSplit(outputSplit.size - 2).trim
-      if (names.contains((x2, y2))) {
-        if (false && newPlace != names((x2, y2))) {
-          println("--- Full output ---")
-          println(fullOutput)
-          println("--- End full output ---")
-          println(
-            s"Mismatch in names. newPlace for ($x2, $y2) was previously: ${names(x2, y2)} but Now it seems to be: $newPlace")
-          println(s"history: \n${history.mkString("\n")}")
-          System.exit(1)
-        }
-      } else {
-        names((x2, y2)) = newPlace
-      }
+    if (output.contains("Analysis complete!")) {
+      println(output)
+      assert(output.contains("2214608912"))
+      throw new CompletedException()
     }
 
     if (!output.contains("Command")) {
@@ -137,45 +76,66 @@ Hot Chocolate Fountain   Science lab      0 Hull breach  -  Gift Wrapping Center
       return
     }
 
-    if (!newPlace.contains("Security") && seen.contains((newPlace, inventory))) {
-      println(
-        s"I've been here before... Bailing! (x2, y2): ($x2, $y2) newPlace: $newPlace inventory: $inventory")
-      return
-    }
-    val state: (String, Set[String]) = (newPlace, inventory)
-    seen = seen + state
+    if (!seen.contains((newPlace, inventory))) {
+      val state: (String, Set[String]) = (newPlace, inventory)
+      seen = seen + state
 
-    var allCommands: Set[List[String]] = getAllCommands(newPlace, inventory, output)
-
-    if (interactive) {
-      println(output)
-      println(s"interactive mode: $interactive")
-      println(s"You are now at: $newPlace, (x: $x2 y: $y2) with inv: ${inventory} \n")
-      println("Possible cmds: " + allCommands + "\n")
-      val input = readLine
-      if (input.contains("auto")) {
-        interactive = false
-      } else {
-        allCommands = Set(List(input))
+      val allCommands: Set[List[String]] = getAllCommands(newPlace, inventory, output)
+      allCommands.foreach { commandList =>
+        val newInventory = updateInventory(inventory, commandList)
+        val newHistory   = updateHistory(history, commandList, newPlace, x2, y2)
+        printStatus(output, newPlace, x2, y2, inventory, allCommands, commandList)
+        execute(newPlace, x2, y2, newHistory, newInventory)
       }
     }
+  }
 
-    allCommands.foreach { commandList =>
-      var inv2 = inventory
-      commandList.foreach { command =>
-        if (command.contains("take")) {
-          val item = command.split("take ")(1)
-          inv2 = inv2 + item
+  def updateHistory(history: Queue[Record],
+                    commandList: List[String],
+                    newPlace: String,
+                    x: Int,
+                    y: Int): Queue[Record] = {
+    history ++ commandList.map { command =>
+      Record(newPlace, command, (x, y))
+    }
+  }
+
+  def updateInventory(inventory: Set[String], commandList: List[String]): Set[String] = {
+    var newInventory = inventory
+    commandList.foreach { command =>
+      if (command.contains("take")) {
+        val item = command.split("take ")(1)
+        newInventory = newInventory + item
+      }
+    }
+    newInventory
+  }
+
+  def getNewPlace(output: String, place: String): String = {
+    var newPlace = place
+    if (output.contains("==")) {
+      val outputSplit = output.split("==")
+      newPlace = outputSplit(outputSplit.size - 2).trim
+    }
+    newPlace
+  }
+
+  def updatePos(x: Int, y: Int, output: String, history: Queue[Record]): (Int, Int) = {
+    if (history.nonEmpty) {
+      if (output.contains("can't do") || output.contains("ejected back to the checkpoint")) {
+        (x, y)
+      } else {
+        val prevCommand = history.last.command
+        prevCommand match {
+          case "north" => (x, y + 1)
+          case "west"  => (x - 1, y)
+          case "east"  => (x + 1, y)
+          case "south" => (x, y - 1)
+          case _       => (x, y)
         }
       }
-
-      println(fullOutput)
-      printStatus(output, newPlace, x2, y2, inventory, allCommands, commandList)
-
-      val newHistory = history ++ commandList.map { command =>
-        Record(newPlace, command, (x2, y2))
-      }
-      execute(newPlace, x2, y2, newHistory, inv2)
+    } else {
+      (x, y)
     }
   }
 
@@ -186,10 +146,9 @@ Hot Chocolate Fountain   Science lab      0 Hull breach  -  Gift Wrapping Center
                   inventory: Set[String],
                   allCommands: Set[List[String]],
                   commandList: List[String]): Unit = {
-    if (!interactive) {
+    if (debug) {
       println(output)
       println(s"You are now at: $newPlace, (x: $x2 y: $y2) with inv: ${inventory} \n")
-      // println(s"Your history is: ${history.mkString("\n")}")
       println("Possible cmds: " + allCommands + "\n")
       println(s"You chose to: " + commandList)
     }
@@ -217,21 +176,6 @@ Hot Chocolate Fountain   Science lab      0 Hull breach  -  Gift Wrapping Center
     outputs.map(_.toChar).mkString("")
   }
 
-  def copyState(state: ComputerState): ComputerState = {
-    val instructions = mutable.Map[BigInt, BigInt]()
-    state.copy().instructions.keys.foreach { k =>
-      instructions(k) = state.instructions(k)
-    }
-
-    val result = ComputerState(instructions,
-                               state.sp,
-                               state.inputs,
-                               state.outputs,
-                               state.relativeBase,
-                               state.halted)
-    result
-  }
-
   def getAllCommands(newPlace: String,
                      inventory: Set[String],
                      output: String): Set[List[String]] = {
@@ -239,22 +183,21 @@ Hot Chocolate Fountain   Science lab      0 Hull breach  -  Gift Wrapping Center
     val takeCommands = getTakeCommands(output)
     val moveCommands = getMoveCommands(output)
 
+    var result = Set[List[String]]()
     if (newPlace.contains("Security")) {
       if (output.contains("Droids on this ship are lighter than the detected value")) {
-        triedInventories = triedInventories + inventory
-        takeCommands.map { List(_) }
+        result = dropCommands.map { List(_) }
       } else if (output.contains("Droids on this ship are heavier than the detected value")) {
-        triedInventories = triedInventories + inventory
-        takeCommands.map { List(_) }
+        result = takeCommands.map { List(_) }
       } else {
-        // Move to pressure plates
-        moveCommands.map { List(_) }
+        result = moveCommands.map { List(_) }
       }
     } else {
-      moveCommands.map { command =>
+      result = moveCommands.map { command =>
         takeCommands.toList :+ command
       }
     }
+    Random.shuffle(result)
   }
 
   def getDropCommands(newPlace: String, inventory: Set[String], output: String): Set[String] = {
@@ -269,7 +212,13 @@ Hot Chocolate Fountain   Science lab      0 Hull breach  -  Gift Wrapping Center
   }
 
   def getTakeCommands(output: String): Set[String] = {
-    val forbidden = Set("infinite loop", "photons")
+    val forbidden = Set("infinite loop",
+                        "photons",
+                        "giant electromagnet",
+                        "molten lava",
+                        "escape pod",
+                        // "dark matter"
+    )
     if (!output.contains("Items")) {
       Set()
     } else {
@@ -293,7 +242,7 @@ Hot Chocolate Fountain   Science lab      0 Hull breach  -  Gift Wrapping Center
         splitted0.split("Commands?")(0)
       }
       val rep = splitted1.replaceAll("- ", "")
-      Random.shuffle(rep.split('\n').filter(s => !s.isBlank).toList).toSet
+      rep.split('\n').filter(s => !s.isBlank).toSet
     }
   }
 
