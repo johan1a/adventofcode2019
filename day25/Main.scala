@@ -28,14 +28,17 @@ object Main extends App {
 
   case class Pos(x: BigInt, y: BigInt)
 
-  val INPUT_FILE  = "input.txt"
-  var names       = mutable.Map[(Int, Int), String]()
-  var interactive = false
+  val INPUT_FILE                       = "input.txt"
+  var names                            = mutable.Map[(Int, Int), String]()
+  var interactive                      = false
+  var seen: Set[(String, Set[String])] = Set()
 
   part1("input.txt")
 
   def part1(file: String): Unit = {
+    println("Starting Part 1")
     names = mutable.Map[(Int, Int), String]()
+    seen = Set()
     execute()
   }
 
@@ -67,16 +70,7 @@ object Main extends App {
               y: Int = 0,
               history: Queue[Record] = Queue(),
               inventory: Set[String] = Set(),
-              seen: Set[(String, Set[String])] = Set(),
               residualCommands: Set[String] = Set()): Unit = {
-
-    if (seen.contains((place, inventory))) {
-      // println(s"I've been here before... Bailing! Inventory: $inventory")
-      return
-    }
-    val state: (String, Set[String]) = (place, inventory)
-    val newSeen                      = seen + state
-    println(newSeen)
 
     val (output, fullOutput) = runCommands(history)
 
@@ -84,7 +78,7 @@ object Main extends App {
       println()
     }
 
-    if (output.contains("Security Checkpoint")) {
+    if (false && output.contains("Security Checkpoint")) {
       println("Jesus take the wheel!")
       interactive = true
     }
@@ -93,42 +87,69 @@ object Main extends App {
     var y2 = y
     if (history.nonEmpty) {
       if (output.contains("can't do") || output.contains("ejected back to the checkpoint")) {
-        println(s"history: $history")
-        interactive = true
+        if (false) {
+          println(s"history: $history")
+          interactive = true
+        }
       } else {
-        val prevCommand = history.head.command
+        val prevCommand = history.last.command
         prevCommand match {
-          case "north" => y2 += 1
-          case "west"  => x2 -= 1
-          case "east"  => x2 += 1
-          case "south" => y2 -= 1
-          case _       =>
+          case "north" => {
+            println("adding to y2")
+            y2 += 1
+          }
+          case "west" => {
+
+            println("subtracting from xx2")
+            x2 -= 1
+          }
+          case "east" => {
+
+            println("adding to x2")
+            x2 += 1
+
+          }
+          case "south" => {
+            println("subtracting from y2")
+            y2 -= 1
+          }
+
+          case _ =>
         }
       }
     }
 
-    var name = place
+    var newPlace = place
     if (output.contains("==")) {
       val outputSplit = output.split("==")
-      name = outputSplit(outputSplit.size - 2).trim
+      newPlace = outputSplit(outputSplit.size - 2).trim
       if (names.contains((x2, y2))) {
-        if (false && name != names((x2, y2))) {
+        if (false && newPlace != names((x2, y2))) {
           println("--- Full output ---")
           println(fullOutput)
           println("--- End full output ---")
           println(
-            s"Mismatch in names. name for ($x2, $y2) was previously: ${names(x2, y2)} but Now it seems to be: $name")
+            s"Mismatch in names. newPlace for ($x2, $y2) was previously: ${names(x2, y2)} but Now it seems to be: $newPlace")
           println(s"history: \n${history.mkString("\n")}")
           System.exit(1)
         }
       } else {
-        names((x2, y2)) = name
+        names((x2, y2)) = newPlace
       }
     }
 
     if (!output.contains("Command")) {
       return
     }
+
+    if (seen.contains((newPlace, inventory))) {
+      println(s"I've been here before... Bailing! (x2, y2): ($x2, $y2) newPlace: $newPlace, Inventory: $inventory newPlace: $newPlace")
+      println(s"seen: $seen")
+      return
+    }
+    val state: (String, Set[String]) = (newPlace, inventory)
+    println(s"Adding to seen: $seen")
+    seen = seen + state
 
     val takeCommands = getTakeCommands(output)
     val moveCommands = getMoveCommands(output)
@@ -141,7 +162,7 @@ object Main extends App {
       println("--- Full output ---")
       println(fullOutput)
       println("--- End full output ---")
-      println(s"You are now at: $name, (x: $x2 y: $y2) with inv: ${inventory} \n")
+      println(s"You are now at: $newPlace, (x: $x2 y: $y2) with inv: ${inventory} \n")
       println("Possible cmds: " + allCommands + "\n")
       val input = readLine
       if (input.contains("auto")) {
@@ -163,19 +184,14 @@ object Main extends App {
       }
 
       if (!interactive) {
-        println(s"You are now at: $name, (x: $x2 y: $y2) with inv: ${inventory} \n")
+        println(output)
+        println(s"You are now at: $newPlace, (x: $x2 y: $y2) with inv: ${inventory} \n")
         // println(s"Your history is: ${history.mkString("\n")}")
         println("Possible cmds: " + allCommands + "\n")
         println(s"You chose to: " + command)
       }
 
-      execute(name,
-              x2,
-              y2,
-              history :+ Record(name, command, (x2, y2)),
-              inv2,
-              newSeen,
-              newResidualCommands)
+      execute(newPlace, x2, y2, history :+ Record(newPlace, command, (x2, y2)), inv2, newResidualCommands)
     }
   }
 
