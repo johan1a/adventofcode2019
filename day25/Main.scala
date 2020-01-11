@@ -1,4 +1,6 @@
 import scala.collection.mutable
+import scala.util.Random
+import java.io._
 import scala.collection.immutable.Queue
 import scala.io.Source
 import scala.io.StdIn.readLine
@@ -32,6 +34,7 @@ object Main extends App {
   var names                            = mutable.Map[(Int, Int), String]()
   var interactive                      = false
   var seen: Set[(String, Set[String])] = Set()
+  var triedInventories                 = Set[Set[String]]()
 
   part1("input.txt")
 
@@ -43,14 +46,15 @@ object Main extends App {
   }
 
   /*
-                            2 Observatory  -  Engineering
-                            1 Holo deck
-    Hot Chocolate Fountaint 0 Hull breach
-                           -1 Passages
-                           -2 Stables
-                           -3
-                           -4
-    -1                      0
+                 *                                                                - Hallway
+                                          2 Observatory  -  Engineering           - Navigation
+                                          1 Holo deck    -  Sick bay              - Corridor
+Hot Chocolate Fountain   Science lab      0 Hull breach  -  Gift Wrapping Center
+                         Crew Quarters   -1 Passages
+                                         -2 Stables
+                                         -3
+                                         -4
+-2                      -1                0
 
 
   history: Stack(Hull Breach: north
@@ -69,8 +73,7 @@ object Main extends App {
               x: Int = 0,
               y: Int = 0,
               history: Queue[Record] = Queue(),
-              inventory: Set[String] = Set(),
-              residualCommands: Set[String] = Set()): Unit = {
+              inventory: Set[String] = Set()): Unit = {
 
     val (output, fullOutput) = runCommands(history)
 
@@ -78,42 +81,32 @@ object Main extends App {
       println()
     }
 
-    if (false && output.contains("Security Checkpoint")) {
-      println("Jesus take the wheel!")
-      interactive = true
+    if (output.contains("Security")) {
+      println(fullOutput)
+      // interactive = true
+      readLine
+      // println("Jesus take the wheel!")
     }
 
     var x2 = x
     var y2 = y
     if (history.nonEmpty) {
-      if (output.contains("can't do") || output.contains("ejected back to the checkpoint")) {
-        if (false) {
-          println(s"history: $history")
-          interactive = true
-        }
-      } else {
+      if (!output.contains("can't do") && !output.contains("ejected back to the checkpoint")) {
         val prevCommand = history.last.command
         prevCommand match {
           case "north" => {
-            println("adding to y2")
             y2 += 1
           }
           case "west" => {
-
-            println("subtracting from xx2")
             x2 -= 1
           }
           case "east" => {
-
-            println("adding to x2")
             x2 += 1
 
           }
           case "south" => {
-            println("subtracting from y2")
             y2 -= 1
           }
-
           case _ =>
         }
       }
@@ -139,59 +132,66 @@ object Main extends App {
     }
 
     if (!output.contains("Command")) {
+      println(fullOutput)
+      readLine
       return
     }
 
-    if (seen.contains((newPlace, inventory))) {
-      println(s"I've been here before... Bailing! (x2, y2): ($x2, $y2) newPlace: $newPlace, Inventory: $inventory newPlace: $newPlace")
-      println(s"seen: $seen")
+    if (!newPlace.contains("Security") && seen.contains((newPlace, inventory))) {
+      println(
+        s"I've been here before... Bailing! (x2, y2): ($x2, $y2) newPlace: $newPlace inventory: $inventory")
       return
     }
     val state: (String, Set[String]) = (newPlace, inventory)
-    println(s"Adding to seen: $seen")
     seen = seen + state
 
-    val takeCommands = getTakeCommands(output)
-    val moveCommands = getMoveCommands(output)
-
-    var allCommands: Set[String] = Set()
-    allCommands = (takeCommands ++ moveCommands ++ residualCommands).toSet
+    var allCommands: Set[List[String]] = getAllCommands(newPlace, inventory, output)
 
     if (interactive) {
-      println(s"interactive is: $interactive")
-      println("--- Full output ---")
-      println(fullOutput)
-      println("--- End full output ---")
+      println(output)
+      println(s"interactive mode: $interactive")
       println(s"You are now at: $newPlace, (x: $x2 y: $y2) with inv: ${inventory} \n")
       println("Possible cmds: " + allCommands + "\n")
       val input = readLine
       if (input.contains("auto")) {
         interactive = false
       } else {
-        allCommands = Set(input)
+        allCommands = Set(List(input))
       }
     }
 
-    allCommands.foreach { command =>
-      var newResidualCommands = Set[String]()
-      var inv2                = inventory
-      if (command.contains("take")) {
-        val item = command.split("take ")(1)
-        inv2 = inv2 + item
-        newResidualCommands = (takeCommands ++ moveCommands).toSet - command
-      } else {
-        newResidualCommands = Set()
+    allCommands.foreach { commandList =>
+      var inv2 = inventory
+      commandList.foreach { command =>
+        if (command.contains("take")) {
+          val item = command.split("take ")(1)
+          inv2 = inv2 + item
+        }
       }
 
-      if (!interactive) {
-        println(output)
-        println(s"You are now at: $newPlace, (x: $x2 y: $y2) with inv: ${inventory} \n")
-        // println(s"Your history is: ${history.mkString("\n")}")
-        println("Possible cmds: " + allCommands + "\n")
-        println(s"You chose to: " + command)
-      }
+      println(fullOutput)
+      printStatus(output, newPlace, x2, y2, inventory, allCommands, commandList)
 
-      execute(newPlace, x2, y2, history :+ Record(newPlace, command, (x2, y2)), inv2, newResidualCommands)
+      val newHistory = history ++ commandList.map { command =>
+        Record(newPlace, command, (x2, y2))
+      }
+      execute(newPlace, x2, y2, newHistory, inv2)
+    }
+  }
+
+  def printStatus(output: String,
+                  newPlace: String,
+                  x2: Int,
+                  y2: Int,
+                  inventory: Set[String],
+                  allCommands: Set[List[String]],
+                  commandList: List[String]): Unit = {
+    if (!interactive) {
+      println(output)
+      println(s"You are now at: $newPlace, (x: $x2 y: $y2) with inv: ${inventory} \n")
+      // println(s"Your history is: ${history.mkString("\n")}")
+      println("Possible cmds: " + allCommands + "\n")
+      println(s"You chose to: " + commandList)
     }
   }
 
@@ -232,22 +232,58 @@ object Main extends App {
     result
   }
 
-  def getTakeCommands(output: String): List[String] = {
-    val forbidden = Set("infinite loop")
+  def getAllCommands(newPlace: String,
+                     inventory: Set[String],
+                     output: String): Set[List[String]] = {
+    val dropCommands = getDropCommands(newPlace, inventory, output)
+    val takeCommands = getTakeCommands(output)
+    val moveCommands = getMoveCommands(output)
+
+    if (newPlace.contains("Security")) {
+      if (output.contains("Droids on this ship are lighter than the detected value")) {
+        triedInventories = triedInventories + inventory
+        takeCommands.map { List(_) }
+      } else if (output.contains("Droids on this ship are heavier than the detected value")) {
+        triedInventories = triedInventories + inventory
+        takeCommands.map { List(_) }
+      } else {
+        // Move to pressure plates
+        moveCommands.map { List(_) }
+      }
+    } else {
+      moveCommands.map { command =>
+        takeCommands.toList :+ command
+      }
+    }
+  }
+
+  def getDropCommands(newPlace: String, inventory: Set[String], output: String): Set[String] = {
+    if (newPlace.contains("Security")) {
+      inventory.map { item =>
+        "drop " + item
+      }
+    } else {
+      return Set()
+    }
+
+  }
+
+  def getTakeCommands(output: String): Set[String] = {
+    val forbidden = Set("infinite loop", "photons")
     if (!output.contains("Items")) {
-      List()
+      Set()
     } else {
       val splitted0 = output.split("Items here:")(1)
       val splitted1 = splitted0.split("Command?")(0)
       val rep       = splitted1.replaceAll("- ", "")
       val items     = rep.split('\n').filter(s => !s.isBlank)
-      items.filter(!forbidden.contains(_)).map { "take " + _ }.toList
+      items.filter(!forbidden.contains(_)).map { "take " + _ }.toSet
     }
   }
 
-  def getMoveCommands(output: String): List[String] = {
+  def getMoveCommands(output: String): Set[String] = {
     if (!output.contains("Doors")) {
-      List()
+      Set()
     } else {
       val doorSplit = output.split("Doors here lead:")
       val splitted0 = doorSplit(doorSplit.size - 1)
@@ -257,7 +293,7 @@ object Main extends App {
         splitted0.split("Commands?")(0)
       }
       val rep = splitted1.replaceAll("- ", "")
-      rep.split('\n').filter(s => !s.isBlank).toList
+      Random.shuffle(rep.split('\n').filter(s => !s.isBlank).toList).toSet
     }
   }
 
